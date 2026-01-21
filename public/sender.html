@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Sender - Blockchain Transport</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background:   #1a1a2e;
+      color: #eee;
+    }
+    h1 {
+      color: #00d4ff;
+    }
+    h1 span {
+      font-size: 14px;
+      background: #7c3aed;
+      padding:   4px 8px;
+      border-radius: 4px;
+      vertical-align: middle;
+      margin-left: 10px;
+    }
+    video {
+      width: 100%;
+      max-width: 640px;
+      background: #000;
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+    .controls {
+      margin:   20px 0;
+      display: flex;
+      gap:   10px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding:   12px 24px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #startBtn {
+      background: #00d4ff;
+      color:   #000;
+    }
+    #startBtn:hover: not(:disabled) {
+      background: #00a8cc;
+    }
+    #stopBtn {
+      background: #ff4757;
+      color:  #fff;
+    }
+    #stopBtn:hover:not(:disabled) {
+      background: #cc3a47;
+    }
+    . status {
+      padding: 15px;
+      border-radius:   6px;
+      margin:   10px 0;
+      background: #16213e;
+    }
+    .status.connected {
+      border-left: 4px solid #00d4ff;
+    }
+    .status.error {
+      border-left: 4px solid #ff4757;
+    }
+    .config-box {
+      background: #0f0f23;
+      padding: 15px;
+      border-radius:   6px;
+      font-family: monospace;
+      font-size: 12px;
+      margin: 10px 0;
+      word-break: break-all;
+    }
+    .config-box . label {
+      color: #888;
+      font-size: 10px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    . config-box .value {
+      color: #00d4ff;
+      margin-bottom: 10px;
+    }
+    .streamcode-box {
+      background: #0f0f23;
+      padding: 15px;
+      border-radius:  6px;
+      margin: 10px 0;
+      border: 2px solid #7c3aed;
+    }
+    .streamcode-box . label {
+      color: #888;
+      font-size: 10px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    . streamcode-box .value {
+      color: #00ff88;
+      font-family: monospace;
+      font-size: 14px;
+      word-break: break-all;
+      padding: 10px;
+      background: #16213e;
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: all;
+    }
+    .streamcode-box .value:hover {
+      background: #1e2a4a;
+    }
+    .streamcode-box .hint {
+      color: #666;
+      font-size: 11px;
+      margin-top:  5px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      margin-top: 15px;
+    }
+    . stat-box {
+      background: #0f0f23;
+      padding:  15px;
+      border-radius:   6px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 20px;
+      font-weight:   bold;
+      color: #00d4ff;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: #888;
+      margin-top: 5px;
+    }
+    .codec-info {
+      background: #0f0f23;
+      padding: 15px;
+      border-radius:  6px;
+      font-family: monospace;
+      font-size: 14px;
+      word-break: break-all;
+    }
+    .tx-log {
+      background: #0f0f23;
+      padding:   15px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 11px;
+      margin-top: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .tx-log div {
+      margin:  3px 0;
+      padding: 2px 0;
+      border-bottom: 1px solid #16213e;
+    }
+    .tx-log .pending {
+      color: #ffa502;
+    }
+    .tx-log .confirmed {
+      color: #00ff88;
+    }
+    . tx-log .retry {
+      color: #ff6b81;
+    }
+    .tx-log .error {
+      color: #ff4757;
+    }
+  </style>
+</head>
+<body>
+  <h1>📹 Video Sender <span>⛓️ Blockchain</span></h1>
+
+  <div class="config-box">
+    <div class="label">Sender Address</div>
+    <div class="value" id="senderAddr">0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc</div>
+    <div class="label">Destination Address</div>
+    <div class="value" id="destAddr">0x6476660100000000000000000000000000000000</div>
+  </div>
+
+  <div class="streamcode-box" id="streamcodeBox" style="display: none;">
+    <div class="label">📺 Stream Code (share this link! )</div>
+    <div class="value" id="streamcodeValue">-</div>
+    <div class="hint">Click to select, then copy.  Share with receiver to watch your stream.</div>
+  </div>
+
+  <div class="status" id="status">
+    Click "Start Streaming" to begin capturing your webcam and broadcasting to the blockchain.
+  </div>
+
+  <video id="preview" autoplay muted playsinline></video>
+
+  <div class="controls">
+    <button id="startBtn">Start Streaming</button>
+    <button id="stopBtn" disabled>Stop Streaming</button>
+  </div>
+
+  <div class="codec-info" id="codecInfo">
+    Codec information will appear here...
+  </div>
+
+  <div class="stats">
+    <div class="stat-box">
+      <div class="stat-value" id="packetCount">0</div>
+      <div class="stat-label">Packets Created</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="txPending">0</div>
+      <div class="stat-label">TX Pending</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="txConfirmed">0</div>
+      <div class="stat-label">TX Confirmed</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="txRetries">0</div>
+      <div class="stat-label">Retries</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="streamPos">0 KB</div>
+      <div class="stat-label">Stream Position</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="currentNonce">-</div>
+      <div class="stat-label">Current Nonce</div>
+    </div>
+  </div>
+
+  <div class="tx-log" id="txLog">
+    <div>Transaction log will appear here...</div>
+  </div>
+
+  <script type="module">
+    import {
+      createWalletClient,
+      createPublicClient,
+      http,
+      defineChain,
+      toHex,
+      parseGwei
+    } from 'https://esm.sh/viem';
+    import { privateKeyToAccount } from 'https://esm.sh/viem/accounts';
+    import { DVFProtocol, StreamCode } from './dist/index.js';
+
+    // ============================================
+    // Configuration
+    // ============================================
+    const CONFIG = {
+      privateKey: '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a',
+      rpcUrl: 'http://127.0.0.1:8545',
+      destAddress: '0x6476660100000000000000000000000000000000',
+
+      // Gas settings (hardcoded for testnet)
+      maxFeePerGas: parseGwei('120'),
+      basePriorityFee: parseGwei('1'),
+      priorityFeeIncrement: parseGwei('0.1'),
+      gasLimit: 30_000_000n, // High limit for large calldata
+
+      // Retry settings
+      confirmationTimeout: 3000, // 3 seconds before retry
+      maxRetries: 10
+    };
+    if(localStorage['ETH_RPC_URL']!=null){
+      CONFIG['rpcUrl'] = localStorage['ETH_RPC_URL']
+    }
+
+
+    // Define a generic local chain
+    const localChain = defineChain({
+      id: 20143, // Default Hardhat/Anvil chain ID
+      name: 'Localhost',
+      nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+      rpcUrls: {
+        default: { http: [CONFIG.rpcUrl] }
+      }
+    });
+
+    // ============================================
+    // Blockchain Transport with Retry Logic
+    // ============================================
+    class BlockchainTransport {
+      constructor(config, onFirstConfirmation, onEndConfirmation) {
+        this.config = config;
+        this. account = privateKeyToAccount(config.privateKey);
+        this.onFirstConfirmation = onFirstConfirmation;
+        this.onEndConfirmation = onEndConfirmation;
+
+        this.walletClient = createWalletClient({
+          account: this.account,
+          chain: localChain,
+          transport: http(config.rpcUrl)
+        });
+
+        this.publicClient = createPublicClient({
+          chain: localChain,
+          transport: http(config.rpcUrl)
+        });
+
+        // Nonce management
+        this.currentNonce = null;
+        this.nonceInitialized = false;
+
+        // Pending transactions:   nonce -> { txHash, packet, priorityFee, timestamp, retryCount, isFirst, isEnd }
+        this.pendingTxs = new Map();
+
+        // Stats
+        this.confirmedCount = 0;
+        this. retryCount = 0;
+
+        // Track first confirmation
+        this.firstConfirmed = false;
+        this.firstNonce = null;
+        this.endNonce = null;
+
+        // Start confirmation checker
+        this.confirmationInterval = setInterval(() => this.checkConfirmations(), 1000);
+      }
+
+      async initialize() {
+        // Get initial nonce from chain
+        this.currentNonce = await this. publicClient.getTransactionCount({
+          address: this.account. address
+        });
+        this.nonceInitialized = true;
+        logTx(`Initialized nonce: ${this.currentNonce}`, 'confirmed');
+      }
+
+      async send(packetData, isFirst = false, isEnd = false) {
+        if (!this.nonceInitialized) {
+          await this.initialize();
+        }
+
+        const nonce = this.currentNonce;
+        this.currentNonce++;
+
+        if (isFirst) {
+          this.firstNonce = nonce;
+        }
+        if (isEnd) {
+          this.endNonce = nonce;
+        }
+
+        updateStats();
+
+        await this.broadcastTransaction(nonce, packetData, this.config.basePriorityFee, 0, isFirst, isEnd);
+      }
+
+      async broadcastTransaction(nonce, packetData, priorityFee, retryCount, isFirst = false, isEnd = false) {
+        try {
+          const hexData = toHex(packetData);
+
+          const txHash = await this.walletClient.sendTransaction({
+            to: this.config.destAddress,
+            data: hexData,
+            nonce: nonce,
+            maxFeePerGas: this. config.maxFeePerGas,
+            maxPriorityFeePerGas: priorityFee,
+            gas: this.config.gasLimit
+          });
+
+          // Track pending transaction
+          this.pendingTxs.set(nonce, {
+            txHash,
+            packet: packetData,
+            priorityFee,
+            timestamp: Date.now(),
+            retryCount,
+            isFirst,
+            isEnd
+          });
+
+          const retryLabel = retryCount > 0 ? ` (retry #${retryCount})` : '';
+          logTx(`TX nonce=${nonce}${retryLabel}:  ${txHash. slice(0, 18)}...`, 'pending');
+          updateStats();
+
+        } catch (err) {
+          logTx(`TX nonce=${nonce} ERROR: ${err.message}`, 'error');
+          console.error('Transaction error:', err);
+
+          // If nonce too low, the tx might already be confirmed
+          if (err. message.includes('nonce too low')) {
+            this.pendingTxs.delete(nonce);
+          }
+        }
+      }
+
+      async checkConfirmations() {
+        const now = Date.now();
+
+        for (const [nonce, txInfo] of this.pendingTxs) {
+          try {
+            // Check if transaction is confirmed
+            const receipt = await this.publicClient.getTransactionReceipt({
+              hash: txInfo.txHash
+            }).catch(() => null);
+
+            if (receipt) {
+              // Transaction confirmed!
+              this.pendingTxs.delete(nonce);
+              this.confirmedCount++;
+              logTx(`TX nonce=${nonce} CONFIRMED in block ${receipt.blockNumber}`, 'confirmed');
+              updateStats();
+
+              // Check if this is the first confirmation
+              if (txInfo.isFirst && !this.firstConfirmed) {
+                this.firstConfirmed = true;
+                if (this.onFirstConfirmation) {
+                  this.onFirstConfirmation(receipt. blockNumber);
+                }
+              }
+
+              // Check if this is the end packet confirmation
+              if (txInfo.isEnd) {
+                if (this.onEndConfirmation) {
+                  this.onEndConfirmation(receipt.blockNumber);
+                }
+              }
+
+              continue;
+            }
+
+            // Check if we need to retry
+            const elapsed = now - txInfo.timestamp;
+            if (elapsed > this.config.confirmationTimeout) {
+              if (txInfo.retryCount >= this.config.maxRetries) {
+                logTx(`TX nonce=${nonce} MAX RETRIES reached`, 'error');
+                continue;
+              }
+
+              // Retry with higher priority fee
+              const newPriorityFee = txInfo. priorityFee + this.config.priorityFeeIncrement;
+              this.retryCount++;
+
+              logTx(`TX nonce=${nonce} RETRY with priority ${Number(newPriorityFee) / 1e9} gwei`, 'retry');
+
+              await this.broadcastTransaction(
+                nonce,
+                txInfo.packet,
+                newPriorityFee,
+                txInfo.retryCount + 1,
+                txInfo.isFirst,
+                txInfo.isEnd
+              );
+            }
+          } catch (err) {
+            console.error(`Error checking TX nonce=${nonce}:`, err);
+          }
+        }
+      }
+
+      getPendingCount() {
+        return this.pendingTxs.size;
+      }
+
+      getConfirmedCount() {
+        return this. confirmedCount;
+      }
+
+      getRetryCount() {
+        return this.retryCount;
+      }
+
+      getCurrentNonce() {
+        return this.currentNonce;
+      }
+
+      getSenderAddress() {
+        return this. account.address;
+      }
+
+      close() {
+        clearInterval(this.confirmationInterval);
+      }
+    }
+
+    // ============================================
+    // DOM Elements
+    // ============================================
+    const preview = document.getElementById('preview');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const status = document.getElementById('status');
+    const codecInfo = document.getElementById('codecInfo');
+    const txLogEl = document.getElementById('txLog');
+    const packetCountEl = document.getElementById('packetCount');
+    const txPendingEl = document.getElementById('txPending');
+    const txConfirmedEl = document. getElementById('txConfirmed');
+    const txRetriesEl = document.getElementById('txRetries');
+    const streamPosEl = document.getElementById('streamPos');
+    const currentNonceEl = document.getElementById('currentNonce');
+    const streamcodeBox = document.getElementById('streamcodeBox');
+    const streamcodeValue = document.getElementById('streamcodeValue');
+
+    // ============================================
+    // State
+    // ============================================
+    let transport = null;
+    let mediaRecorder = null;
+    let stream = null;
+    let packetCount = 0;
+    let streamPosition = 0;
+    let startBlock = null;
+    let pendingChunkSends = 0;
+
+    // ============================================
+    // UI Helpers
+    // ============================================
+    function logTx(message, className = '') {
+      const div = document.createElement('div');
+      div.textContent = `${new Date().toISOString().substr(11, 12)} ${message}`;
+      if (className) div.className = className;
+      txLogEl.insertBefore(div, txLogEl.firstChild);
+      if (txLogEl.children.length > 100) {
+        txLogEl.removeChild(txLogEl.lastChild);
+      }
+    }
+
+    function updateStatus(message, type = '') {
+      status.textContent = message;
+      status.className = 'status ' + type;
+    }
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+
+    function updateStats() {
+      packetCountEl.textContent = packetCount;
+      txPendingEl.textContent = transport ?  transport.getPendingCount() : 0;
+      txConfirmedEl.textContent = transport ?  transport.getConfirmedCount() : 0;
+      txRetriesEl.textContent = transport ? transport.getRetryCount() : 0;
+      streamPosEl.textContent = formatBytes(streamPosition);
+      currentNonceEl.textContent = transport ? transport.getCurrentNonce() : '-';
+    }
+
+    function getSupportedMimeType() {
+      const types = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm;codecs=vp9',
+        'video/webm;codecs=vp8',
+        'video/webm'
+      ];
+      for (const type of types) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          return type;
+        }
+      }
+      return 'video/webm';
+    }
+
+    function updateStreamCode(code) {
+      streamcodeBox.style.display = 'block';
+      streamcodeValue.textContent = code;
+      window.location.hash = code;
+    }
+
+    function onFirstConfirmation(blockNumber) {
+      startBlock = Number(blockNumber);
+      const senderAddress = transport.getSenderAddress();
+      const code = StreamCode.create(senderAddress, startBlock);
+      updateStreamCode(code);
+      logTx(`Stream code created: ${code}`, 'confirmed');
+    }
+
+    function onEndConfirmation(blockNumber) {
+      const endBlock = Number(blockNumber);
+      const senderAddress = transport.getSenderAddress();
+      const code = StreamCode.createWithEnd(senderAddress, startBlock, endBlock);
+      updateStreamCode(code);
+      logTx(`Stream code finalized: ${code}`, 'confirmed');
+    }
+
+    // ============================================
+    // Main Functions
+    // ============================================
+    async function startStreaming() {
+      try {
+        // Reset state
+        packetCount = 0;
+        streamPosition = 0;
+        startBlock = null;
+        pendingChunkSends = 0;
+
+        // Initialize blockchain transport with callbacks
+        transport = new BlockchainTransport(CONFIG, onFirstConfirmation, onEndConfirmation);
+        await transport.initialize();
+
+        updateStatus('🔗 Connected to blockchain.  Starting webcam... ', 'connected');
+
+        // Get webcam stream
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            frameRate: { ideal: 30 }
+          },
+          audio: true
+        });
+
+        preview.srcObject = stream;
+
+        const mimeType = getSupportedMimeType();
+
+        mediaRecorder = new MediaRecorder(stream, {
+          mimeType: mimeType,
+          videoBitsPerSecond: 1500000
+        });
+
+        // Build and send metadata packet
+        const metadata = {
+          mimeType: mediaRecorder.mimeType,
+          videoBitsPerSecond:  1500000,
+          startTime: Date.now()
+        };
+
+        const metadataPacket = DVFProtocol.createMetadataPacket(metadata);
+        await transport.send(metadataPacket, true, false); // isFirst = true
+        packetCount++;
+
+        logTx(`META packet:  ${metadataPacket.length}B`, 'pending');
+
+        codecInfo.innerHTML = `
+          <strong>MIME Type:</strong> ${metadata.mimeType}<br>
+          <strong>Video Bitrate:</strong> ${metadata. videoBitsPerSecond / 1000} kbps
+        `;
+
+        // Handle data chunks
+        mediaRecorder.ondataavailable = async (event) => {
+          if (event.data.size > 0) {
+            pendingChunkSends++;
+            try {
+              const buffer = await event.data.arrayBuffer();
+              const chunkData = new Uint8Array(buffer);
+
+              const packet = DVFProtocol.createStreamPacket(streamPosition, chunkData);
+              await transport.send(packet, false, false);
+
+              streamPosition += chunkData.length;
+              packetCount++;
+              updateStats();
+
+            } catch (err) {
+              console.error('Error processing chunk:', err);
+              logTx(`Chunk error: ${err.message}`, 'error');
+            } finally {
+              pendingChunkSends--;
+            }
+          }
+        };
+
+        mediaRecorder.onerror = (event) => {
+          console.error('MediaRecorder error:', event. error);
+          updateStatus('Recording error:  ' + event.error. message, 'error');
+        };
+
+        mediaRecorder.onstop = async () => {
+          // Wait for any pending chunk sends to complete
+          while (pendingChunkSends > 0) {
+            await new Promise(resolve => setTimeout(resolve, 10));
+          }
+
+          // Now send end packet with correct final streamPosition
+          const endPacket = DVFProtocol.createEndPacket(streamPosition);
+          await transport.send(endPacket, false, true); // isEnd = true
+          packetCount++;
+
+          logTx(`END packet: pos=${streamPosition}`, 'pending');
+          updateStats();
+          updateStatus('Streaming stopped. Waiting for confirmations...', '');
+        };
+
+        // Start recording - generate chunk every 500ms
+        mediaRecorder.start(500);
+
+        updateStatus('🔴 Streaming to blockchain... ', 'connected');
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+
+        // Update stats periodically
+        setInterval(updateStats, 500);
+
+      } catch (err) {
+        console.error('Error starting stream:', err);
+        updateStatus('Error: ' + err. message, 'error');
+      }
+    }
+
+    function stopStreaming() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+      }
+
+      preview.srcObject = null;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    }
+
+    // ============================================
+    // Event Listeners
+    // ============================================
+    startBtn.addEventListener('click', startStreaming);
+    stopBtn.addEventListener('click', stopStreaming);
+
+    window.addEventListener('beforeunload', () => {
+      stopStreaming();
+      // Note: transport.close() removed - let confirmations continue
+      // The page is closing anyway, so we don't need to clean up
+    });
+
+    // Display config
+    const account = privateKeyToAccount(CONFIG.privateKey);
+    document.getElementById('senderAddr').textContent = account.address;
+    document.getElementById('destAddr').textContent = CONFIG.destAddress;
+
+  </script>
+</body>
+</html>
