@@ -13,35 +13,42 @@
       max-width: 900px;
       margin: 0 auto;
       padding: 20px;
-      background:   #1a1a2e;
-      color: #eee;
+      background: #FFFFFF;
+      color: #0E091C;
     }
     h1 {
-      color: #00d4ff;
+      color: #0E091C;
+      margin-bottom: 8px;
     }
     h1 span {
       font-size: 14px;
-      background: #7c3aed;
-      padding:   4px 8px;
+      background: #6E54FF;
+      color: #FFFFFF;
+      padding: 4px 8px;
       border-radius: 4px;
       vertical-align: middle;
       margin-left: 10px;
     }
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
     video {
       width: 100%;
-      max-width: 640px;
+      max-width: 100%;
       background: #000;
       border-radius: 8px;
       margin: 10px 0;
     }
     .controls {
-      margin:   20px 0;
+      margin: 20px 0;
       display: flex;
-      gap:   10px;
+      gap: 10px;
       flex-wrap: wrap;
     }
     button {
-      padding:   12px 24px;
+      padding: 12px 24px;
       font-size: 16px;
       border: none;
       border-radius: 6px;
@@ -53,135 +60,151 @@
       cursor: not-allowed;
     }
     #startBtn {
-      background: #00d4ff;
-      color:   #000;
+      background: #6E54FF;
+      color: #FFFFFF;
     }
-    #startBtn:hover: not(:disabled) {
-      background: #00a8cc;
+    #startBtn:hover:not(:disabled) {
+      background: #5a45d6;
     }
     #stopBtn {
-      background: #ff4757;
-      color:  #fff;
+      background: #FFAE45;
+      color: #0E091C;
     }
     #stopBtn:hover:not(:disabled) {
-      background: #cc3a47;
+      background: #e69a3a;
     }
-    . status {
-      padding: 15px;
-      border-radius:   6px;
-      margin:   10px 0;
-      background: #16213e;
+    .status {
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin: 15px 0;
+      background: #F5F5F5;
+      font-size: 14px;
     }
     .status.connected {
-      border-left: 4px solid #00d4ff;
+      border-left: 4px solid #00cc6a;
+      background: #f0fff4;
     }
     .status.error {
       border-left: 4px solid #ff4757;
+      background: #fff5f5;
     }
     .config-box {
-      background: #0f0f23;
+      background: #F5F5F5;
       padding: 15px;
-      border-radius:   6px;
+      border-radius: 6px;
       font-family: monospace;
       font-size: 12px;
-      margin: 10px 0;
+      margin: 15px 0;
       word-break: break-all;
     }
-    .config-box . label {
-      color: #888;
+    .config-box .label {
+      color: #666;
       font-size: 10px;
       text-transform: uppercase;
       margin-bottom: 2px;
     }
-    . config-box .value {
-      color: #00d4ff;
+    .config-box .value {
+      color: #6E54FF;
       margin-bottom: 10px;
     }
-    .streamcode-box {
-      background: #0f0f23;
-      padding: 15px;
-      border-radius:  6px;
-      margin: 10px 0;
-      border: 2px solid #7c3aed;
+    .config-box .value:last-child {
+      margin-bottom: 0;
     }
-    .streamcode-box . label {
-      color: #888;
+    .streamcode-box {
+      background: #FFFFFF;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+      border: 2px solid #6E54FF;
+    }
+    .streamcode-box .label {
+      color: #666;
       font-size: 10px;
       text-transform: uppercase;
       margin-bottom: 5px;
     }
-    . streamcode-box .value {
-      color: #00ff88;
+    .streamcode-box .value {
+      color: #0E091C;
       font-family: monospace;
       font-size: 14px;
       word-break: break-all;
       padding: 10px;
-      background: #16213e;
+      background: #F5F5F5;
       border-radius: 4px;
       cursor: pointer;
       user-select: all;
     }
     .streamcode-box .value:hover {
-      background: #1e2a4a;
+      background: #E8E8E8;
     }
     .streamcode-box .hint {
       color: #666;
       font-size: 11px;
-      margin-top:  5px;
-    }
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 10px;
-      margin-top: 15px;
-    }
-    . stat-box {
-      background: #0f0f23;
-      padding:  15px;
-      border-radius:   6px;
-      text-align: center;
-    }
-    .stat-value {
-      font-size: 20px;
-      font-weight:   bold;
-      color: #00d4ff;
-    }
-    .stat-label {
-      font-size: 11px;
-      color: #888;
       margin-top: 5px;
     }
-    .codec-info {
-      background: #0f0f23;
-      padding: 15px;
-      border-radius:  6px;
+
+    /* Stats bar - horizontal layout */
+    .stats-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 15px 0;
+      padding: 12px;
+      background: #F5F5F5;
+      border-radius: 6px;
+    }
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: #FFFFFF;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .stat-item .label {
+      color: #666;
+    }
+    .stat-item .value {
+      font-weight: 600;
+      color: #6E54FF;
       font-family: monospace;
-      font-size: 14px;
+    }
+
+    .codec-info {
+      background: #F5F5F5;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 13px;
       word-break: break-all;
+      margin: 15px 0;
+      color: #0E091C;
     }
     .tx-log {
-      background: #0f0f23;
-      padding:   15px;
+      background: #0E091C;
+      padding: 12px 16px;
       border-radius: 6px;
       font-family: monospace;
       font-size: 11px;
-      margin-top: 10px;
-      max-height: 200px;
+      margin-top: 15px;
+      max-height: 180px;
       overflow-y: auto;
+      color: #ccc;
     }
     .tx-log div {
-      margin:  3px 0;
+      margin: 2px 0;
       padding: 2px 0;
-      border-bottom: 1px solid #16213e;
+      border-bottom: 1px solid #1a1a2e;
     }
     .tx-log .pending {
-      color: #ffa502;
+      color: #FFAE45;
     }
     .tx-log .confirmed {
-      color: #00ff88;
+      color: #00cc6a;
     }
-    . tx-log .retry {
-      color: #ff6b81;
+    .tx-log .retry {
+      color: #FF8EE4;
     }
     .tx-log .error {
       color: #ff4757;
@@ -189,19 +212,13 @@
   </style>
 </head>
 <body>
-  <h1>📹 Video Sender <span>⛓️ Blockchain</span></h1>
-
-  <div class="config-box">
-    <div class="label">Sender Address</div>
-    <div class="value" id="senderAddr">0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc</div>
-    <div class="label">Destination Address</div>
-    <div class="value" id="destAddr">0x6476660100000000000000000000000000000000</div>
-  </div>
+  <h1>Video Sender <span>Blockchain</span></h1>
+  <p class="subtitle">Broadcast video via blockchain transactions</p>
 
   <div class="streamcode-box" id="streamcodeBox" style="display: none;">
-    <div class="label">📺 Stream Code (share this link! )</div>
+    <div class="label">Stream Code (share this!)</div>
     <div class="value" id="streamcodeValue">-</div>
-    <div class="hint">Click to select, then copy.  Share with receiver to watch your stream.</div>
+    <div class="hint">Click to select, then copy. Share with receiver to watch your stream.</div>
   </div>
 
   <div class="status" id="status">
@@ -219,35 +236,42 @@
     Codec information will appear here...
   </div>
 
-  <div class="stats">
-    <div class="stat-box">
-      <div class="stat-value" id="packetCount">0</div>
-      <div class="stat-label">Packets Created</div>
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="label">Packets:</span>
+      <span class="value" id="packetCount">0</span>
     </div>
-    <div class="stat-box">
-      <div class="stat-value" id="txPending">0</div>
-      <div class="stat-label">TX Pending</div>
+    <div class="stat-item">
+      <span class="label">TX Pending:</span>
+      <span class="value" id="txPending">0</span>
     </div>
-    <div class="stat-box">
-      <div class="stat-value" id="txConfirmed">0</div>
-      <div class="stat-label">TX Confirmed</div>
+    <div class="stat-item">
+      <span class="label">TX Confirmed:</span>
+      <span class="value" id="txConfirmed">0</span>
     </div>
-    <div class="stat-box">
-      <div class="stat-value" id="txRetries">0</div>
-      <div class="stat-label">Retries</div>
+    <div class="stat-item">
+      <span class="label">Retries:</span>
+      <span class="value" id="txRetries">0</span>
     </div>
-    <div class="stat-box">
-      <div class="stat-value" id="streamPos">0 KB</div>
-      <div class="stat-label">Stream Position</div>
+    <div class="stat-item">
+      <span class="label">Stream:</span>
+      <span class="value" id="streamPos">0 KB</span>
     </div>
-    <div class="stat-box">
-      <div class="stat-value" id="currentNonce">-</div>
-      <div class="stat-label">Current Nonce</div>
+    <div class="stat-item">
+      <span class="label">Gas Spent:</span>
+      <span class="value" id="gasSpent">0 MON</span>
     </div>
   </div>
 
   <div class="tx-log" id="txLog">
     <div>Transaction log will appear here...</div>
+  </div>
+
+  <div class="config-box">
+    <div class="label">Sender Address</div>
+    <div class="value" id="senderAddr">0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc</div>
+    <div class="label">Destination Address</div>
+    <div class="value" id="destAddr">0x6476660100000000000000000000000000000000</div>
   </div>
 
   <script type="module">
@@ -301,7 +325,7 @@
     class BlockchainTransport {
       constructor(config, onFirstConfirmation, onEndConfirmation) {
         this.config = config;
-        this. account = privateKeyToAccount(config.privateKey);
+        this.account = privateKeyToAccount(config.privateKey);
         this.onFirstConfirmation = onFirstConfirmation;
         this.onEndConfirmation = onEndConfirmation;
 
@@ -320,12 +344,13 @@
         this.currentNonce = null;
         this.nonceInitialized = false;
 
-        // Pending transactions:   nonce -> { txHash, packet, priorityFee, timestamp, retryCount, isFirst, isEnd }
+        // Pending transactions: nonce -> { txHash, packet, priorityFee, timestamp, retryCount, isFirst, isEnd }
         this.pendingTxs = new Map();
 
         // Stats
         this.confirmedCount = 0;
-        this. retryCount = 0;
+        this.retryCount = 0;
+        this.totalGasSpent = 0n;
 
         // Track first confirmation
         this.firstConfirmed = false;
@@ -338,8 +363,8 @@
 
       async initialize() {
         // Get initial nonce from chain
-        this.currentNonce = await this. publicClient.getTransactionCount({
-          address: this.account. address
+        this.currentNonce = await this.publicClient.getTransactionCount({
+          address: this.account.address
         });
         this.nonceInitialized = true;
         logTx(`Initialized nonce: ${this.currentNonce}`, 'confirmed');
@@ -373,7 +398,7 @@
             to: this.config.destAddress,
             data: hexData,
             nonce: nonce,
-            maxFeePerGas: this. config.maxFeePerGas,
+            maxFeePerGas: this.config.maxFeePerGas,
             maxPriorityFeePerGas: priorityFee,
             gas: this.config.gasLimit
           });
@@ -390,7 +415,7 @@
           });
 
           const retryLabel = retryCount > 0 ? ` (retry #${retryCount})` : '';
-          logTx(`TX nonce=${nonce}${retryLabel}:  ${txHash. slice(0, 18)}...`, 'pending');
+          logTx(`TX nonce=${nonce}${retryLabel}: ${txHash.slice(0, 18)}...`, 'pending');
           updateStats();
 
         } catch (err) {
@@ -398,7 +423,7 @@
           console.error('Transaction error:', err);
 
           // If nonce too low, the tx might already be confirmed
-          if (err. message.includes('nonce too low')) {
+          if (err.message.includes('nonce too low')) {
             this.pendingTxs.delete(nonce);
           }
         }
@@ -418,6 +443,12 @@
               // Transaction confirmed!
               this.pendingTxs.delete(nonce);
               this.confirmedCount++;
+
+              // Track gas spent
+              const gasUsed = receipt.gasUsed;
+              const effectiveGasPrice = receipt.effectiveGasPrice;
+              this.totalGasSpent += gasUsed * effectiveGasPrice;
+
               logTx(`TX nonce=${nonce} CONFIRMED in block ${receipt.blockNumber}`, 'confirmed');
               updateStats();
 
@@ -425,7 +456,7 @@
               if (txInfo.isFirst && !this.firstConfirmed) {
                 this.firstConfirmed = true;
                 if (this.onFirstConfirmation) {
-                  this.onFirstConfirmation(receipt. blockNumber);
+                  this.onFirstConfirmation(receipt.blockNumber);
                 }
               }
 
@@ -448,7 +479,7 @@
               }
 
               // Retry with higher priority fee
-              const newPriorityFee = txInfo. priorityFee + this.config.priorityFeeIncrement;
+              const newPriorityFee = txInfo.priorityFee + this.config.priorityFeeIncrement;
               this.retryCount++;
 
               logTx(`TX nonce=${nonce} RETRY with priority ${Number(newPriorityFee) / 1e9} gwei`, 'retry');
@@ -473,7 +504,7 @@
       }
 
       getConfirmedCount() {
-        return this. confirmedCount;
+        return this.confirmedCount;
       }
 
       getRetryCount() {
@@ -484,8 +515,12 @@
         return this.currentNonce;
       }
 
+      getTotalGasSpent() {
+        return this.totalGasSpent;
+      }
+
       getSenderAddress() {
-        return this. account.address;
+        return this.account.address;
       }
 
       close() {
@@ -504,10 +539,10 @@
     const txLogEl = document.getElementById('txLog');
     const packetCountEl = document.getElementById('packetCount');
     const txPendingEl = document.getElementById('txPending');
-    const txConfirmedEl = document. getElementById('txConfirmed');
+    const txConfirmedEl = document.getElementById('txConfirmed');
     const txRetriesEl = document.getElementById('txRetries');
     const streamPosEl = document.getElementById('streamPos');
-    const currentNonceEl = document.getElementById('currentNonce');
+    const gasSpentEl = document.getElementById('gasSpent');
     const streamcodeBox = document.getElementById('streamcodeBox');
     const streamcodeValue = document.getElementById('streamcodeValue');
 
@@ -548,11 +583,19 @@
 
     function updateStats() {
       packetCountEl.textContent = packetCount;
-      txPendingEl.textContent = transport ?  transport.getPendingCount() : 0;
-      txConfirmedEl.textContent = transport ?  transport.getConfirmedCount() : 0;
+      txPendingEl.textContent = transport ? transport.getPendingCount() : 0;
+      txConfirmedEl.textContent = transport ? transport.getConfirmedCount() : 0;
       txRetriesEl.textContent = transport ? transport.getRetryCount() : 0;
       streamPosEl.textContent = formatBytes(streamPosition);
-      currentNonceEl.textContent = transport ? transport.getCurrentNonce() : '-';
+
+      // Format gas spent in MON (18 decimals)
+      if (transport) {
+        const gasWei = transport.getTotalGasSpent();
+        const gasMon = Number(gasWei) / 1e18;
+        gasSpentEl.textContent = gasMon.toFixed(1) + ' MON';
+      } else {
+        gasSpentEl.textContent = '0 MON';
+      }
     }
 
     function getSupportedMimeType() {
@@ -608,7 +651,7 @@
         transport = new BlockchainTransport(CONFIG, onFirstConfirmation, onEndConfirmation);
         await transport.initialize();
 
-        updateStatus('🔗 Connected to blockchain.  Starting webcam... ', 'connected');
+        updateStatus('Connected to blockchain. Starting webcam...', 'connected');
 
         // Get webcam stream
         stream = await navigator.mediaDevices.getUserMedia({
@@ -632,7 +675,7 @@
         // Build and send metadata packet
         const metadata = {
           mimeType: mediaRecorder.mimeType,
-          videoBitsPerSecond:  1500000,
+          videoBitsPerSecond: 1500000,
           startTime: Date.now()
         };
 
@@ -640,11 +683,11 @@
         await transport.send(metadataPacket, true, false); // isFirst = true
         packetCount++;
 
-        logTx(`META packet:  ${metadataPacket.length}B`, 'pending');
+        logTx(`META packet: ${metadataPacket.length}B`, 'pending');
 
         codecInfo.innerHTML = `
           <strong>MIME Type:</strong> ${metadata.mimeType}<br>
-          <strong>Video Bitrate:</strong> ${metadata. videoBitsPerSecond / 1000} kbps
+          <strong>Video Bitrate:</strong> ${metadata.videoBitsPerSecond / 1000} kbps
         `;
 
         // Handle data chunks
@@ -672,8 +715,8 @@
         };
 
         mediaRecorder.onerror = (event) => {
-          console.error('MediaRecorder error:', event. error);
-          updateStatus('Recording error:  ' + event.error. message, 'error');
+          console.error('MediaRecorder error:', event.error);
+          updateStatus('Recording error: ' + event.error.message, 'error');
         };
 
         mediaRecorder.onstop = async () => {
@@ -695,7 +738,7 @@
         // Start recording - generate chunk every 500ms
         mediaRecorder.start(500);
 
-        updateStatus('🔴 Streaming to blockchain... ', 'connected');
+        updateStatus('Streaming to blockchain...', 'connected');
         startBtn.disabled = true;
         stopBtn.disabled = false;
 
@@ -704,7 +747,7 @@
 
       } catch (err) {
         console.error('Error starting stream:', err);
-        updateStatus('Error: ' + err. message, 'error');
+        updateStatus('Error: ' + err.message, 'error');
       }
     }
 

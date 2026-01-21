@@ -13,181 +13,189 @@
       max-width: 900px;
       margin: 0 auto;
       padding: 20px;
-      background:  #1a1a2e;
-      color: #eee;
+      background: #FFFFFF;
+      color: #0E091C;
     }
     h1 {
-      color: #00ff88;
+      color: #0E091C;
+      margin-bottom: 8px;
     }
     h1 span {
       font-size: 14px;
-      background: #7c3aed;
-      padding:  4px 8px;
+      background: #6E54FF;
+      color: #FFFFFF;
+      padding: 4px 8px;
       border-radius: 4px;
       vertical-align: middle;
       margin-left: 10px;
     }
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+
+    /* Initial streamcode entry view */
+    .streamcode-entry {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      padding: 40px 20px;
+    }
+    .streamcode-entry.hidden {
+      display: none;
+    }
+    .streamcode-entry .prompt {
+      font-size: 18px;
+      color: #0E091C;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .streamcode-entry input {
+      width: 100%;
+      max-width: 600px;
+      padding: 16px 20px;
+      font-family: monospace;
+      font-size: 16px;
+      background: #FFFFFF;
+      border: 2px solid #6E54FF;
+      border-radius: 8px;
+      color: #0E091C;
+      outline: none;
+      text-align: center;
+    }
+    .streamcode-entry input:focus {
+      border-color: #FFAE45;
+      box-shadow: 0 0 0 3px rgba(255, 174, 69, 0.2);
+    }
+    .streamcode-entry input::placeholder {
+      color: #999;
+    }
+    .streamcode-entry .hint {
+      color: #666;
+      font-size: 13px;
+      margin-top: 12px;
+      text-align: center;
+    }
+    .streamcode-entry .error {
+      color: #ff4757;
+      font-size: 13px;
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    /* Main viewer UI (hidden initially) */
+    .viewer-ui {
+      display: none;
+    }
+    .viewer-ui.active {
+      display: block;
+    }
+
+    /* Stream code display */
+    .streamcode-display {
+      background: #FFFFFF;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #0E091C;
+      word-break: break-all;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
     video {
       width: 100%;
-      max-width: 640px;
+      max-width: 100%;
       background: #000;
       border-radius: 8px;
       margin: 10px 0;
     }
-    .config-box {
-      background: #0f0f23;
-      padding: 15px;
-      border-radius:  6px;
-      font-family: monospace;
-      font-size: 12px;
-      margin: 10px 0;
-      word-break: break-all;
-    }
-    .config-box . label {
-      color: #888;
-      font-size: 10px;
-      text-transform: uppercase;
-      margin-bottom: 2px;
-    }
-    . config-box .value {
-      color: #00ff88;
-      margin-bottom: 10px;
-    }
-    . streamcode-input-box {
-      background: #0f0f23;
-      padding:  15px;
-      border-radius: 6px;
-      margin: 10px 0;
-      border: 2px solid #7c3aed;
-    }
-    .streamcode-input-box .label {
-      color: #888;
-      font-size: 10px;
-      text-transform: uppercase;
-      margin-bottom: 5px;
-    }
-    . streamcode-input-box input {
-      width: 100%;
-      padding: 12px;
-      font-family: monospace;
-      font-size: 14px;
-      background: #16213e;
-      border: 1px solid #333;
-      border-radius: 4px;
-      color: #00ff88;
-      outline: none;
-    }
-    .streamcode-input-box input:focus {
-      border-color: #7c3aed;
-    }
-    .streamcode-input-box input::placeholder {
-      color: #555;
-    }
-    .streamcode-input-box .hint {
-      color: #666;
-      font-size: 11px;
-      margin-top:  5px;
-    }
-    .streamcode-input-box .error {
-      color: #ff4757;
-      font-size: 12px;
-      margin-top: 5px;
-    }
+
     .status {
-      padding: 15px;
+      padding: 12px 16px;
       border-radius: 6px;
-      margin: 10px 0;
-      background: #16213e;
+      margin: 15px 0;
+      background: #F5F5F5;
+      font-size: 14px;
     }
     .status.connected {
-      border-left: 4px solid #00ff88;
+      border-left: 4px solid #00cc6a;
+      background: #f0fff4;
     }
-    . status.waiting {
-      border-left: 4px solid #ffa502;
+    .status.waiting {
+      border-left: 4px solid #FFAE45;
+      background: #fffbf0;
     }
     .status.error {
       border-left: 4px solid #ff4757;
+      background: #fff5f5;
     }
-    . stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 10px;
-      margin-top: 15px;
-    }
-    . stat-box {
-      background: #0f0f23;
-      padding:  15px;
-      border-radius:  6px;
-      text-align: center;
-    }
-    .stat-value {
-      font-size: 20px;
-      font-weight:  bold;
-      color: #00ff88;
-    }
-    .stat-label {
-      font-size: 11px;
-      color: #888;
-      margin-top: 5px;
-    }
-    .codec-info {
-      background: #0f0f23;
-      padding: 15px;
+
+    /* Stats bar - horizontal layout */
+    .stats-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 15px 0;
+      padding: 12px;
+      background: #F5F5F5;
       border-radius: 6px;
+    }
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: #FFFFFF;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .stat-item .label {
+      color: #666;
+    }
+    .stat-item .value {
+      font-weight: 600;
+      color: #6E54FF;
       font-family: monospace;
-      font-size: 14px;
-      word-break: break-all;
+    }
+
+    /* Playback buffer */
+    .buffer-section {
+      margin: 15px 0;
+    }
+    .buffer-section .label {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 6px;
     }
     .buffer-bar {
-      height: 20px;
-      background: #0f0f23;
-      border-radius: 10px;
+      height: 8px;
+      background: #E0E0E0;
+      border-radius: 4px;
       overflow: hidden;
-      margin: 10px 0;
     }
-    . buffer-fill {
-      height:  100%;
-      background: linear-gradient(90deg, #00ff88, #00d4ff);
+    .buffer-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #6E54FF, #85E6FF);
       transition: width 0.3s ease;
     }
-    .controls {
-      margin:  20px 0;
-      display: flex;
-      gap:  10px;
+
+    /* Reassembly visual */
+    .reassembly-section {
+      margin: 15px 0;
     }
-    button {
-      padding: 12px 24px;
-      font-size: 16px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      background: #00ff88;
-      color: #000;
-      transition: all 0.2s;
-    }
-    button:hover {
-      background: #00cc6a;
-    }
-    button: disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    #stopBtn {
-      background: #ff4757;
-      color: #fff;
-    }
-    #stopBtn:hover: not(:disabled) {
-      background: #cc3a47;
-    }
-    . reassembly-visual {
-      background: #0f0f23;
-      padding: 15px;
-      border-radius: 6px;
-      margin-top: 10px;
+    .reassembly-section .label {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 6px;
     }
     .reassembly-bar {
-      height: 30px;
-      background: #16213e;
+      height: 24px;
+      background: #E0E0E0;
       border-radius: 4px;
       position: relative;
       overflow: hidden;
@@ -195,122 +203,127 @@
     .reassembly-chunk {
       position: absolute;
       height: 100%;
-      background: #00ff88;
+      background: #6E54FF;
       opacity: 0.7;
     }
     .reassembly-cursor {
       position: absolute;
       height: 100%;
       width: 2px;
-      background: #ff4757;
+      background: #FFAE45;
     }
+
+    .codec-info {
+      background: #F5F5F5;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 13px;
+      word-break: break-all;
+      margin: 15px 0;
+      color: #0E091C;
+    }
+
     .block-log {
-      background: #0f0f23;
-      padding: 15px;
+      background: #0E091C;
+      padding: 12px 16px;
       border-radius: 6px;
       font-family: monospace;
       font-size: 11px;
-      margin-top: 10px;
-      max-height: 200px;
+      margin-top: 15px;
+      max-height: 180px;
       overflow-y: auto;
+      color: #ccc;
     }
     .block-log div {
-      margin: 3px 0;
+      margin: 2px 0;
       padding: 2px 0;
-      border-bottom: 1px solid #16213e;
+      border-bottom: 1px solid #1a1a2e;
     }
-    .block-log . block {
-      color: #00d4ff;
+    .block-log .block {
+      color: #85E6FF;
     }
-    .block-log . packet {
-      color: #00ff88;
+    .block-log .packet {
+      color: #FFAE45;
     }
     .block-log .empty {
       color: #666;
     }
     .block-log .error {
-      color: #ff4757;
+      color: #FF8EE4;
     }
   </style>
 </head>
 <body>
-  <h1>📺 Video Receiver <span>⛓️ Blockchain</span></h1>
+  <h1>Video Receiver <span>Blockchain</span></h1>
+  <p class="subtitle">Watch video streams transported via blockchain transactions</p>
 
-  <div class="streamcode-input-box">
-    <div class="label">📺 Enter Stream Code</div>
-    <input type="text" id="streamcodeInput" placeholder="dvf10x3c44cdddb6a900fa2b585dd299e03d12fa4293bc12345" />
-    <div class="hint">Paste a stream code to watch.  Press Enter or click Load Stream to start.</div>
+  <!-- Initial entry view -->
+  <div class="streamcode-entry" id="streamcodeEntry">
+    <div class="prompt">Paste a stream code to start watching</div>
+    <input type="text" id="streamcodeInput" placeholder="dvf1..." autocomplete="off" spellcheck="false" />
+    <div class="hint">Stream codes start with dvf1 and contain the sender address and block range</div>
     <div class="error" id="streamcodeError"></div>
   </div>
 
-  <div class="config-box">
-    <div class="label">Watching Sender Address</div>
-    <div class="value" id="senderAddr">-</div>
-    <div class="label">Start Block</div>
-    <div class="value" id="startBlockDisplay">-</div>
-    <div class="label">End Block</div>
-    <div class="value" id="endBlockDisplay">-</div>
-    <div class="label">Destination Address</div>
-    <div class="value" id="destAddr">0x6476660100000000000000000000000000000000</div>
-  </div>
+  <!-- Main viewer UI (hidden until stream code entered) -->
+  <div class="viewer-ui" id="viewerUI">
+    <div class="streamcode-display" id="streamcodeDisplay"></div>
 
-  <div class="status waiting" id="status">
-    Enter a stream code above to begin watching.
-  </div>
+    <video id="player" autoplay playsinline controls></video>
 
-  <video id="player" autoplay playsinline controls></video>
-
-  <div class="controls">
-    <button id="loadStreamBtn">Load Stream</button>
-    <button id="stopBtn" disabled>Stop</button>
-    <button id="playBtn" disabled>▶ Play</button>
-  </div>
-
-  <p>Playback Buffer: </p>
-  <div class="buffer-bar">
-    <div class="buffer-fill" id="bufferFill" style="width: 0%"></div>
-  </div>
-
-  <div class="reassembly-visual">
-    <p style="margin:  0 0 10px 0; font-size: 12px;">Reassembly Buffer (received chunks):</p>
-    <div class="reassembly-bar" id="reassemblyBar">
-      <div class="reassembly-cursor" id="reassemblyCursor" style="left: 0%"></div>
+    <div class="status waiting" id="status">
+      Connecting to blockchain...
     </div>
-  </div>
 
-  <div class="codec-info" id="codecInfo">
-    Waiting for codec information from blockchain...
-  </div>
+    <div class="buffer-section">
+      <div class="label">Playback Buffer</div>
+      <div class="buffer-bar">
+        <div class="buffer-fill" id="bufferFill" style="width: 0%"></div>
+      </div>
+    </div>
 
-  <div class="stats">
-    <div class="stat-box">
-      <div class="stat-value" id="currentBlock">-</div>
-      <div class="stat-label">Current Block</div>
+    <div class="reassembly-section">
+      <div class="label">Reassembly Buffer</div>
+      <div class="reassembly-bar" id="reassemblyBar">
+        <div class="reassembly-cursor" id="reassemblyCursor" style="left: 0%"></div>
+      </div>
     </div>
-    <div class="stat-box">
-      <div class="stat-value" id="packetCount">0</div>
-      <div class="stat-label">Packets Found</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-value" id="streamSize">0 KB</div>
-      <div class="stat-label">Stream Data</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-value" id="reassembledSize">0 KB</div>
-      <div class="stat-label">Reassembled</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-value" id="outOfOrder">0</div>
-      <div class="stat-label">Out-of-Order</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-value" id="blocksScanned">0</div>
-      <div class="stat-label">Blocks Scanned</div>
-    </div>
-  </div>
 
-  <div class="block-log" id="blockLog">
-    <div>Block monitoring log will appear here...</div>
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="label">Block:</span>
+        <span class="value" id="currentBlock">-</span>
+      </div>
+      <div class="stat-item">
+        <span class="label">Scanned:</span>
+        <span class="value" id="blocksScanned">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="label">Packets:</span>
+        <span class="value" id="packetCount">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="label">Stream:</span>
+        <span class="value" id="streamSize">0 KB</span>
+      </div>
+      <div class="stat-item">
+        <span class="label">Reassembled:</span>
+        <span class="value" id="reassembledSize">0 KB</span>
+      </div>
+      <div class="stat-item">
+        <span class="label">Out-of-Order:</span>
+        <span class="value" id="outOfOrder">0</span>
+      </div>
+    </div>
+
+    <div class="codec-info" id="codecInfo">
+      Waiting for codec information from blockchain...
+    </div>
+
+    <div class="block-log" id="blockLog">
+      <div>Block monitoring log will appear here...</div>
+    </div>
   </div>
 
   <script type="module">
@@ -326,16 +339,15 @@
     // Configuration
     // ============================================
     const CONFIG = {
-      rpcUrl:  'http://127.0.0.1:8545',
+      rpcUrl: 'http://127.0.0.1:8545',
       destAddress: '0x6476660100000000000000000000000000000000',
-      pollInterval: 300, // ms
-      autoStopTimeout: 20 * 60 * 1000 // 20 minutes
+      pollInterval: 300,
+      autoStopTimeout: 20 * 60 * 1000
     };
     if (localStorage['ETH_RPC_URL'] != null) {
       CONFIG['rpcUrl'] = localStorage['ETH_RPC_URL'];
     }
 
-    // Define local chain
     const localChain = defineChain({
       id: 31337,
       name: 'Localhost',
@@ -362,11 +374,10 @@
         this.nextBlockToFetch = null;
         this.endBlock = null;
         this.isRunning = false;
-        this. pollTimer = null;
+        this.pollTimer = null;
         this.blocksScanned = 0;
         this.autoStopTimer = null;
 
-        // Normalize addresses for comparison
         this.senderAddress = config.senderAddress.toLowerCase();
         this.destAddress = config.destAddress.toLowerCase();
       }
@@ -378,7 +389,6 @@
 
         logBlock(`Starting from block ${startBlock}${endBlock ? ` to ${endBlock}` : ' (live)'}`, 'block');
 
-        // Set auto-stop timeout for live streams
         if (this.endBlock === null) {
           this.autoStopTimer = setTimeout(() => {
             logBlock('Auto-stopping after 20 minute timeout', 'error');
@@ -398,7 +408,7 @@
           clearTimeout(this.pollTimer);
           this.pollTimer = null;
         }
-        if (this. autoStopTimer) {
+        if (this.autoStopTimer) {
           clearTimeout(this.autoStopTimer);
           this.autoStopTimer = null;
         }
@@ -408,17 +418,6 @@
         if (!this.isRunning) return;
 
         try {
-          // Check if we've passed the end block
-          if (this.endBlock !== null && this.nextBlockToFetch > this.endBlock) {
-            logBlock(`Reached end block ${this.endBlock}`, 'block');
-            this.stop();
-            if (this.onComplete) {
-              this.onComplete('complete');
-            }
-            return;
-          }
-
-          // Try to fetch the next block
           const block = await this.publicClient.getBlock({
             blockNumber: this.nextBlockToFetch,
             includeTransactions: true
@@ -428,48 +427,51 @@
             this.blocksScanned++;
             updateCurrentBlock(this.nextBlockToFetch, this.blocksScanned);
 
-            // Process transactions in this block
             let packetsFound = 0;
 
-            for (const tx of block. transactions) {
-              // Check if this transaction is from our sender to our dest
+            for (const tx of block.transactions) {
               if (tx.from.toLowerCase() === this.senderAddress &&
                   tx.to && tx.to.toLowerCase() === this.destAddress &&
                   tx.input && tx.input !== '0x') {
 
                 try {
-                  // Convert calldata to bytes
                   const packetData = hexToBytes(tx.input);
 
-                  // Validate it's a DVF packet
                   if (DVFProtocol.validateMagic(packetData)) {
                     packetsFound++;
                     this.onPacket(packetData);
                   }
                 } catch (err) {
-                  logBlock(`Error parsing TX ${tx.hash. slice(0, 10)}...:  ${err.message}`, 'error');
+                  logBlock(`Error parsing TX ${tx.hash.slice(0, 10)}...: ${err.message}`, 'error');
                 }
               }
             }
 
             if (packetsFound > 0) {
-              logBlock(`Block ${this.nextBlockToFetch}:  ${packetsFound} packet(s) found`, 'packet');
+              logBlock(`Block ${this.nextBlockToFetch}: ${packetsFound} packet(s) found`, 'packet');
             } else {
-              // Only log empty blocks occasionally to reduce noise
               if (this.blocksScanned % 10 === 0) {
                 logBlock(`Block ${this.nextBlockToFetch}: no packets (scanned ${this.blocksScanned} blocks)`, 'empty');
               }
             }
 
-            // Move to next block
             this.nextBlockToFetch++;
+
+            // Check if we've finished scanning after processing this block
+            if (this.endBlock !== null && this.nextBlockToFetch > this.endBlock) {
+              logBlock(`Finished scanning through block ${this.endBlock}`, 'block');
+              this.stop();
+              if (this.onComplete) {
+                this.onComplete('complete');
+              }
+              return;
+            }
           }
 
         } catch (err) {
           logBlock(`Poll error: ${err.message}`, 'error');
         }
 
-        // Schedule next poll
         this.pollTimer = setTimeout(() => this.poll(), this.config.pollInterval);
       }
     }
@@ -478,9 +480,6 @@
     // DOM Elements
     // ============================================
     const player = document.getElementById('player');
-    const loadStreamBtn = document.getElementById('loadStreamBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const playBtn = document. getElementById('playBtn');
     const status = document.getElementById('status');
     const codecInfo = document.getElementById('codecInfo');
     const blockLogEl = document.getElementById('blockLog');
@@ -495,9 +494,9 @@
     const reassemblyCursor = document.getElementById('reassemblyCursor');
     const streamcodeInput = document.getElementById('streamcodeInput');
     const streamcodeError = document.getElementById('streamcodeError');
-    const senderAddrEl = document.getElementById('senderAddr');
-    const startBlockDisplayEl = document.getElementById('startBlockDisplay');
-    const endBlockDisplayEl = document.getElementById('endBlockDisplay');
+    const streamcodeEntry = document.getElementById('streamcodeEntry');
+    const viewerUI = document.getElementById('viewerUI');
+    const streamcodeDisplay = document.getElementById('streamcodeDisplay');
 
     // ============================================
     // State
@@ -522,7 +521,7 @@
       if (className) div.className = className;
       blockLogEl.insertBefore(div, blockLogEl.firstChild);
       if (blockLogEl.children.length > 100) {
-        blockLogEl.removeChild(blockLogEl. lastChild);
+        blockLogEl.removeChild(blockLogEl.lastChild);
       }
     }
 
@@ -538,14 +537,14 @@
     }
 
     function updateCurrentBlock(blockNum, scanned) {
-      currentBlockEl.textContent = blockNum. toString();
+      currentBlockEl.textContent = blockNum.toString();
       blocksScannedEl.textContent = scanned;
     }
 
     function updateStats() {
       packetCountEl.textContent = packetCount;
       streamSizeEl.textContent = formatBytes(totalStreamBytes);
-      reassembledSizeEl.textContent = formatBytes(reassemblyBuffer. reassembledPosition);
+      reassembledSizeEl.textContent = formatBytes(reassemblyBuffer.reassembledPosition);
       outOfOrderEl.textContent = reassemblyBuffer.outOfOrderCount;
     }
 
@@ -571,7 +570,7 @@
     }
 
     function updateBufferDisplay() {
-      if (! sourceBuffer || !player. duration) return;
+      if (!sourceBuffer || !player.duration) return;
 
       try {
         const buffered = sourceBuffer.buffered;
@@ -595,10 +594,10 @@
       streamcodeError.textContent = '';
     }
 
-    function updateConfigDisplay(config) {
-      senderAddrEl.textContent = config.senderAddress;
-      startBlockDisplayEl.textContent = config.startBlock.toString();
-      endBlockDisplayEl.textContent = config.endBlock !== null ? config.endBlock.toString() : '(live stream)';
+    function showViewerUI(streamCode) {
+      streamcodeEntry.classList.add('hidden');
+      viewerUI.classList.add('active');
+      streamcodeDisplay.textContent = 'Watching streamcode: ' + streamCode;
     }
 
     // ============================================
@@ -607,7 +606,7 @@
     function initializeMediaSource() {
       if (!codecData || isInitialized) return;
 
-      if (! MediaSource. isTypeSupported(codecData.mimeType)) {
+      if (!MediaSource.isTypeSupported(codecData.mimeType)) {
         updateStatus(`Error: Codec not supported: ${codecData.mimeType}`, 'error');
         return;
       }
@@ -617,7 +616,7 @@
 
       mediaSource.addEventListener('sourceopen', () => {
         try {
-          sourceBuffer = mediaSource.addSourceBuffer(codecData. mimeType);
+          sourceBuffer = mediaSource.addSourceBuffer(codecData.mimeType);
           sourceBuffer.mode = 'sequence';
 
           sourceBuffer.addEventListener('updateend', () => {
@@ -630,10 +629,8 @@
           });
 
           isInitialized = true;
-          playBtn.disabled = false;
-          updateStatus('🟢 Receiving stream from blockchain! ', 'connected');
+          updateStatus('Receiving stream from blockchain', 'connected');
 
-          // Auto-play
           player.play().catch(err => {
             console.log('Autoplay blocked:', err);
           });
@@ -648,7 +645,7 @@
     }
 
     function processPendingAppends() {
-      if (! sourceBuffer || sourceBuffer.updating) return;
+      if (!sourceBuffer || sourceBuffer.updating) return;
 
       const data = reassemblyBuffer.getContiguousData();
       if (data && data.byteLength > 0) {
@@ -673,7 +670,7 @@
 
       if (reassemblyBuffer.isComplete() && mediaSource && mediaSource.readyState === 'open') {
         try {
-          if (pendingAppend.length === 0 && ! sourceBuffer.updating) {
+          if (pendingAppend.length === 0 && !sourceBuffer.updating) {
             mediaSource.endOfStream();
             logBlock('Stream complete!', 'packet');
           }
@@ -703,11 +700,10 @@
           codecData = packet.metadata;
           codecInfo.innerHTML = `
             <strong>MIME Type:</strong> ${codecData.mimeType}<br>
-            <strong>Video Bitrate:</strong> ${codecData. videoBitsPerSecond / 1000} kbps
+            <strong>Video Bitrate:</strong> ${codecData.videoBitsPerSecond / 1000} kbps
           `;
           logBlock(`META: ${codecData.mimeType}`, 'packet');
 
-          // Reset for new stream
           reassemblyBuffer.reset();
           isInitialized = false;
           pendingAppend = [];
@@ -731,7 +727,13 @@
 
           reassemblyBuffer.addChunk(packet.position, packet.data, true);
           processPendingAppends();
-          updateStatus('Stream ended. ', 'connected');
+          updateStatus('Stream download complete', 'connected');
+
+          // Stop scanning for more blocks
+          if (listener) {
+            listener.stop();
+            logBlock('Stopped scanning (stream ended)', 'block');
+          }
           break;
       }
 
@@ -742,13 +744,11 @@
     // Stream Loading
     // ============================================
     function resetState() {
-      // Stop existing listener
       if (listener) {
         listener.stop();
         listener = null;
       }
 
-      // Reset media
       if (mediaSource && mediaSource.readyState === 'open') {
         try {
           mediaSource.endOfStream();
@@ -758,45 +758,37 @@
       sourceBuffer = null;
       player.src = '';
 
-      // Reset buffers
       reassemblyBuffer = new ReassemblyBuffer();
       pendingAppend = [];
 
-      // Reset stats
       codecData = null;
       packetCount = 0;
       totalStreamBytes = 0;
       isInitialized = false;
 
-      // Reset UI
       currentBlockEl.textContent = '-';
-      packetCountEl. textContent = '0';
+      packetCountEl.textContent = '0';
       streamSizeEl.textContent = '0 KB';
       reassembledSizeEl.textContent = '0 KB';
       outOfOrderEl.textContent = '0';
-      blocksScannedEl. textContent = '0';
+      blocksScannedEl.textContent = '0';
       bufferFill.style.width = '0%';
       codecInfo.textContent = 'Waiting for codec information from blockchain...';
-      playBtn.disabled = true;
     }
 
     function onStreamComplete(reason) {
-      stopBtn.disabled = true;
-      loadStreamBtn.disabled = false;
-
       if (reason === 'timeout') {
-        updateStatus('Stream timed out after 20 minutes. ', 'waiting');
+        updateStatus('Stream timed out after 20 minutes', 'waiting');
       } else if (reason === 'complete') {
-        updateStatus('Stream playback complete.', 'connected');
+        updateStatus('Stream download complete', 'connected');
       } else {
-        updateStatus('Stream stopped. ', 'waiting');
+        updateStatus('Stream stopped', 'waiting');
       }
     }
 
     async function loadStream(streamCode) {
       clearStreamcodeError();
 
-      // Parse the stream code
       const parsed = StreamCode.parse(streamCode);
 
       if (parsed.error) {
@@ -804,24 +796,16 @@
         return;
       }
 
-      // Reset everything
       resetState();
 
-      // Update URL hash
       window.location.hash = streamCode;
 
-      // Update config display
       currentStreamConfig = parsed;
-      updateConfigDisplay(parsed);
+      showViewerUI(streamCode);
 
-      // Update UI
-      loadStreamBtn.disabled = true;
-      stopBtn.disabled = false;
-
-      updateStatus(`🔗 Connecting to blockchain for ${parsed.isLive ? 'live' :  'recorded'} stream...`, 'waiting');
+      updateStatus(`Connecting to blockchain for ${parsed.isLive ? 'live' : 'recorded'} stream...`, 'waiting');
 
       try {
-        // Create listener config
         const listenerConfig = {
           rpcUrl: CONFIG.rpcUrl,
           senderAddress: parsed.senderAddress,
@@ -830,60 +814,27 @@
           autoStopTimeout: CONFIG.autoStopTimeout
         };
 
-        // Create and start listener
         listener = new BlockchainListener(listenerConfig, handlePacket, onStreamComplete);
         await listener.start(parsed.startBlock, parsed.endBlock);
 
-        updateStatus(`👀 Listening for video packets from block ${parsed.startBlock}...`, 'connected');
+        updateStatus(`Listening for video packets from block ${parsed.startBlock}...`, 'connected');
 
       } catch (err) {
         console.error('Error starting listener:', err);
-        showStreamcodeError('Failed to connect:  ' + err.message);
+        showStreamcodeError('Failed to connect: ' + err.message);
         updateStatus('Error: ' + err.message, 'error');
-        loadStreamBtn.disabled = false;
-        stopBtn.disabled = true;
       }
-    }
-
-    function stopStream() {
-      if (listener) {
-        listener.stop();
-        listener = null;
-      }
-
-      stopBtn.disabled = true;
-      loadStreamBtn.disabled = false;
-      updateStatus('Stream stopped.', 'waiting');
     }
 
     // ============================================
     // Event Listeners
     // ============================================
-    loadStreamBtn.addEventListener('click', () => {
-      const code = streamcodeInput.value. trim();
-      if (code) {
-        loadStream(code);
-      } else {
-        showStreamcodeError('Please enter a stream code');
-      }
-    });
-
-    stopBtn.addEventListener('click', stopStream);
-
-    playBtn.addEventListener('click', () => {
-      player.play().catch(err => {
-        console.log('Play failed:', err);
-        updateStatus('Click on the video to play (autoplay blocked)', 'waiting');
-      });
-    });
-
     player.addEventListener('click', () => {
       if (player.paused) {
         player.play().catch(console.log);
       }
     });
 
-    // Handle Enter key in input
     streamcodeInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         const code = streamcodeInput.value.trim();
@@ -893,18 +844,15 @@
       }
     });
 
-    // Handle paste event - auto-load after paste
-    streamcodeInput. addEventListener('paste', (e) => {
-      // Use setTimeout to get the pasted value after it's inserted
+    streamcodeInput.addEventListener('paste', (e) => {
       setTimeout(() => {
-        const code = streamcodeInput. value.trim();
-        if (code && code. startsWith('dvf1')) {
+        const code = streamcodeInput.value.trim();
+        if (code && code.startsWith('dvf1')) {
           loadStream(code);
         }
       }, 50);
     });
 
-    // Handle hash change
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.slice(1);
       if (hash && hash.startsWith('dvf1')) {
@@ -913,15 +861,11 @@
       }
     });
 
-    // Update displays periodically
     setInterval(() => {
       updateBufferDisplay();
       updateReassemblyVisual();
       updateStats();
     }, 500);
-
-    // Display config
-    document.getElementById('destAddr').textContent = CONFIG.destAddress;
 
     window.addEventListener('beforeunload', () => {
       if (listener) listener.stop();
@@ -934,7 +878,6 @@
       const hash = window.location.hash.slice(1);
       if (hash && hash.startsWith('dvf1')) {
         streamcodeInput.value = hash;
-        // Small delay to ensure everything is loaded
         setTimeout(() => {
           loadStream(hash);
         }, 100);
