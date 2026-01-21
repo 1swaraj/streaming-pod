@@ -320,7 +320,146 @@
     });
 
     // ============================================
-    // Blockchain Transport with Retry Logic
+    // Packet State Machine
+    // ============================================
+    const PacketState = {
+      SENDING: 'SENDING',
+      PENDING: 'PENDING',
+      CONFIRMED: 'CONFIRMED',
+      FAILED: 'FAILED'
+    };
+
+    class PacketStateMachine {
+      constructor(nonce, packetData, config, callbacks) {
+        this.nonce = nonce;
+        this.packetData = packetData;
+        this.config = config;
+        this.callbacks = callbacks;  // { onConfirmed, onFailed }
+
+        this.state = PacketState.SENDING;
+        this.txHashes = [];          // Track ALL tx hashes (original + replacements)
+        this.currentTxHash = null;
+        this.priorityFee = config.basePriorityFee;
+        this.retryCount = 0;
+        this.lastSendTime = null;
+        this.isFirst = false;
+        this.isEnd = false;
+      }
+
+      _transitionTo(newState) {
+        const oldState = this.state;
+        this.state = newState;
+        logTx(`TX nonce=${this.nonce}: ${oldState} -> ${newState}`,
+          newState === PacketState.CONFIRMED ? 'confirmed' :
+          newState === PacketState.FAILED ? 'error' : 'pending');
+      }
+
+      async start(walletClient) {
+        await this._broadcast(walletClient);
+      }
+
+      async _broadcast(walletClient) {
+        try {
+          const hexData = toHex(this.packetData);
+
+          const txHash = await walletClient.sendTransaction({
+            to: this.config.destAddress,
+            data: hexData,
+            nonce: this.nonce,
+            maxFeePerGas: this.config.maxFeePerGas,
+            maxPriorityFeePerGas: this.priorityFee,
+            gas: this.config.gasLimit
+          });
+
+          this.txHashes.push(txHash);
+          this.currentTxHash = txHash;
+          this.lastSendTime = Date.now();
+
+          const retryLabel = this.retryCount > 0 ? ` (retry #${this.retryCount})` : '';
+          logTx(`TX nonce=${this.nonce}${retryLabel}: ${txHash.slice(0, 18)}...`, 'pending');
+
+          this._transitionTo(PacketState.PENDING);
+
+        } catch (err) {
+          logTx(`TX nonce=${this.nonce} ERROR: ${err.message}`, 'error');
+          console.error('Transaction error:', err);
+
+          if (err.message.includes('nonce too low')) {
+            // TX might already be confirmed via another hash
+            this._transitionTo(PacketState.CONFIRMED);
+            this.callbacks.onConfirmed(null);
+          } else {
+            this._transitionTo(PacketState.FAILED);
+            this.callbacks.onFailed(err);
+          }
+        }
+      }
+
+      async _checkReceipt(publicClient, hash) {
+        try {
+          return await publicClient.getTransactionReceipt({ hash });
+        } catch {
+          return null;
+        }
+      }
+
+      _isTimedOut() {
+        if (!this.lastSendTime) return false;
+        return Date.now() - this.lastSendTime > this.config.confirmationTimeout;
+      }
+
+      _bumpPriorityFee() {
+        this.priorityFee = this.priorityFee + this.config.priorityFeeIncrement;
+        this.retryCount++;
+      }
+
+      isTerminal() {
+        return this.state === PacketState.CONFIRMED || this.state === PacketState.FAILED;
+      }
+
+      async tick(publicClient, walletClient) {
+        switch (this.state) {
+          case PacketState.SENDING:
+            // Waiting for broadcast to complete - nothing to do
+            break;
+
+          case PacketState.PENDING:
+            // Check ALL tx hashes for confirmation (handles race conditions)
+            for (const hash of this.txHashes) {
+              const receipt = await this._checkReceipt(publicClient, hash);
+              if (receipt) {
+                this._transitionTo(PacketState.CONFIRMED);
+                logTx(`TX nonce=${this.nonce} CONFIRMED in block ${receipt.blockNumber}`, 'confirmed');
+                this.callbacks.onConfirmed(receipt);
+                return;
+              }
+            }
+
+            // Check for timeout (only if no TX confirmed)
+            if (this._isTimedOut()) {
+              if (this.retryCount >= this.config.maxRetries) {
+                this._transitionTo(PacketState.FAILED);
+                logTx(`TX nonce=${this.nonce} MAX RETRIES reached`, 'error');
+                this.callbacks.onFailed(new Error('Max retries exceeded'));
+              } else {
+                logTx(`TX nonce=${this.nonce} RETRY with priority ${Number(this.priorityFee + this.config.priorityFeeIncrement) / 1e9} gwei`, 'retry');
+                this._bumpPriorityFee();
+                this._transitionTo(PacketState.SENDING);
+                await this._broadcast(walletClient);
+              }
+            }
+            break;
+
+          case PacketState.CONFIRMED:
+          case PacketState.FAILED:
+            // Terminal states - nothing to do
+            break;
+        }
+      }
+    }
+
+    // ============================================
+    // Blockchain Transport (State Machine Manager)
     // ============================================
     class BlockchainTransport {
       constructor(config, onFirstConfirmation, onEndConfirmation) {
@@ -344,30 +483,57 @@
         this.currentNonce = null;
         this.nonceInitialized = false;
 
-        // Pending transactions: nonce -> { txHash, packet, priorityFee, timestamp, retryCount, isFirst, isEnd }
-        this.pendingTxs = new Map();
+        // Packet state machines: nonce -> PacketStateMachine
+        this.packets = new Map();
 
         // Stats
-        this.confirmedCount = 0;
-        this.retryCount = 0;
+        this.totalRetries = 0;
         this.totalGasSpent = 0n;
 
         // Track first confirmation
         this.firstConfirmed = false;
-        this.firstNonce = null;
-        this.endNonce = null;
 
-        // Start confirmation checker
-        this.confirmationInterval = setInterval(() => this.checkConfirmations(), 1000);
+        // Start tick loop
+        this.tickInterval = setInterval(() => this._tick(), 1000);
       }
 
       async initialize() {
-        // Get initial nonce from chain
         this.currentNonce = await this.publicClient.getTransactionCount({
           address: this.account.address
         });
         this.nonceInitialized = true;
         logTx(`Initialized nonce: ${this.currentNonce}`, 'confirmed');
+      }
+
+      _handleConfirmed(machine, receipt) {
+        // Track gas spent
+        if (receipt) {
+          this.totalGasSpent += receipt.gasUsed * receipt.effectiveGasPrice;
+        }
+
+        // Track retries
+        this.totalRetries += machine.retryCount;
+
+        updateStats();
+
+        // Check if this is the first confirmation
+        if (machine.isFirst && !this.firstConfirmed) {
+          this.firstConfirmed = true;
+          if (this.onFirstConfirmation && receipt) {
+            this.onFirstConfirmation(receipt.blockNumber);
+          }
+        }
+
+        // Check if this is the end packet confirmation
+        if (machine.isEnd && this.onEndConfirmation && receipt) {
+          this.onEndConfirmation(receipt.blockNumber);
+        }
+      }
+
+      _handleFailed(machine, error) {
+        this.totalRetries += machine.retryCount;
+        updateStats();
+        console.error(`Packet nonce=${machine.nonce} failed:`, error);
       }
 
       async send(packetData, isFirst = false, isEnd = false) {
@@ -378,137 +544,42 @@
         const nonce = this.currentNonce;
         this.currentNonce++;
 
-        if (isFirst) {
-          this.firstNonce = nonce;
-        }
-        if (isEnd) {
-          this.endNonce = nonce;
-        }
+        const machine = new PacketStateMachine(nonce, packetData, this.config, {
+          onConfirmed: (receipt) => this._handleConfirmed(machine, receipt),
+          onFailed: (error) => this._handleFailed(machine, error)
+        });
+        machine.isFirst = isFirst;
+        machine.isEnd = isEnd;
 
+        this.packets.set(nonce, machine);
         updateStats();
 
-        await this.broadcastTransaction(nonce, packetData, this.config.basePriorityFee, 0, isFirst, isEnd);
+        await machine.start(this.walletClient);
       }
 
-      async broadcastTransaction(nonce, packetData, priorityFee, retryCount, isFirst = false, isEnd = false) {
-        try {
-          const hexData = toHex(packetData);
-
-          const txHash = await this.walletClient.sendTransaction({
-            to: this.config.destAddress,
-            data: hexData,
-            nonce: nonce,
-            maxFeePerGas: this.config.maxFeePerGas,
-            maxPriorityFeePerGas: priorityFee,
-            gas: this.config.gasLimit
-          });
-
-          // Track pending transaction
-          this.pendingTxs.set(nonce, {
-            txHash,
-            packet: packetData,
-            priorityFee,
-            timestamp: Date.now(),
-            retryCount,
-            isFirst,
-            isEnd
-          });
-
-          const retryLabel = retryCount > 0 ? ` (retry #${retryCount})` : '';
-          logTx(`TX nonce=${nonce}${retryLabel}: ${txHash.slice(0, 18)}...`, 'pending');
-          updateStats();
-
-        } catch (err) {
-          logTx(`TX nonce=${nonce} ERROR: ${err.message}`, 'error');
-          console.error('Transaction error:', err);
-
-          // If nonce too low, the tx might already be confirmed
-          if (err.message.includes('nonce too low')) {
-            this.pendingTxs.delete(nonce);
+      async _tick() {
+        for (const machine of this.packets.values()) {
+          if (!machine.isTerminal()) {
+            await machine.tick(this.publicClient, this.walletClient);
           }
         }
-      }
-
-      async checkConfirmations() {
-        const now = Date.now();
-
-        for (const [nonce, txInfo] of this.pendingTxs) {
-          try {
-            // Check if transaction is confirmed
-            const receipt = await this.publicClient.getTransactionReceipt({
-              hash: txInfo.txHash
-            }).catch(() => null);
-
-            if (receipt) {
-              // Transaction confirmed!
-              this.pendingTxs.delete(nonce);
-              this.confirmedCount++;
-
-              // Track gas spent
-              const gasUsed = receipt.gasUsed;
-              const effectiveGasPrice = receipt.effectiveGasPrice;
-              this.totalGasSpent += gasUsed * effectiveGasPrice;
-
-              logTx(`TX nonce=${nonce} CONFIRMED in block ${receipt.blockNumber}`, 'confirmed');
-              updateStats();
-
-              // Check if this is the first confirmation
-              if (txInfo.isFirst && !this.firstConfirmed) {
-                this.firstConfirmed = true;
-                if (this.onFirstConfirmation) {
-                  this.onFirstConfirmation(receipt.blockNumber);
-                }
-              }
-
-              // Check if this is the end packet confirmation
-              if (txInfo.isEnd) {
-                if (this.onEndConfirmation) {
-                  this.onEndConfirmation(receipt.blockNumber);
-                }
-              }
-
-              continue;
-            }
-
-            // Check if we need to retry
-            const elapsed = now - txInfo.timestamp;
-            if (elapsed > this.config.confirmationTimeout) {
-              if (txInfo.retryCount >= this.config.maxRetries) {
-                logTx(`TX nonce=${nonce} MAX RETRIES reached`, 'error');
-                continue;
-              }
-
-              // Retry with higher priority fee
-              const newPriorityFee = txInfo.priorityFee + this.config.priorityFeeIncrement;
-              this.retryCount++;
-
-              logTx(`TX nonce=${nonce} RETRY with priority ${Number(newPriorityFee) / 1e9} gwei`, 'retry');
-
-              await this.broadcastTransaction(
-                nonce,
-                txInfo.packet,
-                newPriorityFee,
-                txInfo.retryCount + 1,
-                txInfo.isFirst,
-                txInfo.isEnd
-              );
-            }
-          } catch (err) {
-            console.error(`Error checking TX nonce=${nonce}:`, err);
-          }
-        }
+        updateStats();
       }
 
       getPendingCount() {
-        return this.pendingTxs.size;
+        return [...this.packets.values()].filter(m =>
+          m.state === PacketState.SENDING || m.state === PacketState.PENDING
+        ).length;
       }
 
       getConfirmedCount() {
-        return this.confirmedCount;
+        return [...this.packets.values()].filter(m =>
+          m.state === PacketState.CONFIRMED
+        ).length;
       }
 
       getRetryCount() {
-        return this.retryCount;
+        return this.totalRetries;
       }
 
       getCurrentNonce() {
@@ -524,7 +595,7 @@
       }
 
       close() {
-        clearInterval(this.confirmationInterval);
+        clearInterval(this.tickInterval);
       }
     }
 
@@ -534,7 +605,7 @@
     const preview = document.getElementById('preview');
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
-    const status = document.getElementById('status');
+    const statusEl = document.getElementById('status');
     const codecInfo = document.getElementById('codecInfo');
     const txLogEl = document.getElementById('txLog');
     const packetCountEl = document.getElementById('packetCount');
@@ -545,17 +616,6 @@
     const gasSpentEl = document.getElementById('gasSpent');
     const streamcodeBox = document.getElementById('streamcodeBox');
     const streamcodeValue = document.getElementById('streamcodeValue');
-
-    // ============================================
-    // State
-    // ============================================
-    let transport = null;
-    let mediaRecorder = null;
-    let stream = null;
-    let packetCount = 0;
-    let streamPosition = 0;
-    let startBlock = null;
-    let pendingChunkSends = 0;
 
     // ============================================
     // UI Helpers
@@ -570,32 +630,10 @@
       }
     }
 
-    function updateStatus(message, type = '') {
-      status.textContent = message;
-      status.className = 'status ' + type;
-    }
-
     function formatBytes(bytes) {
       if (bytes < 1024) return bytes + ' B';
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
       return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-    }
-
-    function updateStats() {
-      packetCountEl.textContent = packetCount;
-      txPendingEl.textContent = transport ? transport.getPendingCount() : 0;
-      txConfirmedEl.textContent = transport ? transport.getConfirmedCount() : 0;
-      txRetriesEl.textContent = transport ? transport.getRetryCount() : 0;
-      streamPosEl.textContent = formatBytes(streamPosition);
-
-      // Format gas spent in MON (18 decimals)
-      if (transport) {
-        const gasWei = transport.getTotalGasSpent();
-        const gasMon = Number(gasWei) / 1e18;
-        gasSpentEl.textContent = gasMon.toFixed(1) + ' MON';
-      } else {
-        gasSpentEl.textContent = '0 MON';
-      }
     }
 
     function getSupportedMimeType() {
@@ -614,168 +652,285 @@
       return 'video/webm';
     }
 
-    function updateStreamCode(code) {
-      streamcodeBox.style.display = 'block';
-      streamcodeValue.textContent = code;
-      window.location.hash = code;
-    }
+    // ============================================
+    // Streaming State Machine
+    // ============================================
+    const StreamState = {
+      IDLE: 'IDLE',
+      INITIALIZING: 'INITIALIZING',
+      STREAMING: 'STREAMING',
+      STOPPING: 'STOPPING',
+      STOPPED: 'STOPPED',
+      ERROR: 'ERROR'
+    };
 
-    function onFirstConfirmation(blockNumber) {
-      startBlock = Number(blockNumber);
-      const senderAddress = transport.getSenderAddress();
-      const code = StreamCode.create(senderAddress, startBlock);
-      updateStreamCode(code);
-      logTx(`Stream code created: ${code}`, 'confirmed');
-    }
+    class StreamingStateMachine {
+      constructor(config) {
+        this.config = config;
+        this.state = StreamState.IDLE;
 
-    function onEndConfirmation(blockNumber) {
-      const endBlock = Number(blockNumber);
-      const senderAddress = transport.getSenderAddress();
-      const code = StreamCode.createWithEnd(senderAddress, startBlock, endBlock);
-      updateStreamCode(code);
-      logTx(`Stream code finalized: ${code}`, 'confirmed');
+        // Resources (owned by state machine)
+        this.transport = null;
+        this.mediaRecorder = null;
+        this.mediaStream = null;
+
+        // Stream data
+        this.packetCount = 0;
+        this.streamPosition = 0;
+        this.startBlock = null;
+        this.pendingChunkSends = 0;
+
+        // Stats update interval
+        this.statsInterval = null;
+      }
+
+      // State transition with logging
+      _transitionTo(newState) {
+        const oldState = this.state;
+        this.state = newState;
+        logTx(`Stream: ${oldState} → ${newState}`, 'pending');
+        this._updateUI();
+      }
+
+      // Derive UI from current state
+      _updateUI() {
+        // Button states
+        const canStart = this.state === StreamState.IDLE || this.state === StreamState.STOPPED || this.state === StreamState.ERROR;
+        const canStop = this.state === StreamState.STREAMING;
+        startBtn.disabled = !canStart;
+        stopBtn.disabled = !canStop;
+
+        // Status message and style
+        const statusConfig = {
+          [StreamState.IDLE]: { message: 'Click "Start Streaming" to begin capturing your webcam and broadcasting to the blockchain.', type: '' },
+          [StreamState.INITIALIZING]: { message: 'Initializing blockchain connection and webcam...', type: '' },
+          [StreamState.STREAMING]: { message: 'Streaming to blockchain...', type: 'connected' },
+          [StreamState.STOPPING]: { message: 'Stopping stream, sending final packet...', type: '' },
+          [StreamState.STOPPED]: { message: 'Streaming stopped. Waiting for confirmations...', type: '' },
+          [StreamState.ERROR]: { message: `Error: ${this.lastError?.message || 'Unknown error'}`, type: 'error' }
+        };
+
+        const { message, type } = statusConfig[this.state];
+        statusEl.textContent = message;
+        statusEl.className = 'status ' + type;
+
+        // Update stats display
+        this._updateStats();
+      }
+
+      _updateStats() {
+        packetCountEl.textContent = this.packetCount;
+        txPendingEl.textContent = this.transport ? this.transport.getPendingCount() : 0;
+        txConfirmedEl.textContent = this.transport ? this.transport.getConfirmedCount() : 0;
+        txRetriesEl.textContent = this.transport ? this.transport.getRetryCount() : 0;
+        streamPosEl.textContent = formatBytes(this.streamPosition);
+
+        if (this.transport) {
+          const gasWei = this.transport.getTotalGasSpent();
+          const gasMon = Number(gasWei) / 1e18;
+          gasSpentEl.textContent = gasMon.toFixed(1) + ' MON';
+        } else {
+          gasSpentEl.textContent = '0 MON';
+        }
+      }
+
+      _updateStreamCode(code) {
+        streamcodeBox.style.display = 'block';
+        streamcodeValue.textContent = code;
+        window.location.hash = code;
+      }
+
+      _onFirstConfirmation(blockNumber) {
+        this.startBlock = Number(blockNumber);
+        const senderAddress = this.transport.getSenderAddress();
+        const code = StreamCode.create(senderAddress, this.startBlock);
+        this._updateStreamCode(code);
+        logTx(`Stream code created: ${code}`, 'confirmed');
+      }
+
+      _onEndConfirmation(blockNumber) {
+        const endBlock = Number(blockNumber);
+        const senderAddress = this.transport.getSenderAddress();
+        const code = StreamCode.createWithEnd(senderAddress, this.startBlock, endBlock);
+        this._updateStreamCode(code);
+        logTx(`Stream code finalized: ${code}`, 'confirmed');
+      }
+
+      // Actions that trigger state transitions
+      async start() {
+        if (this.state !== StreamState.IDLE && this.state !== StreamState.STOPPED && this.state !== StreamState.ERROR) {
+          return; // Invalid transition
+        }
+
+        this._transitionTo(StreamState.INITIALIZING);
+
+        try {
+          // Reset stream data
+          this.packetCount = 0;
+          this.streamPosition = 0;
+          this.startBlock = null;
+          this.pendingChunkSends = 0;
+          this.lastError = null;
+
+          // Initialize blockchain transport
+          this.transport = new BlockchainTransport(
+            this.config,
+            (blockNumber) => this._onFirstConfirmation(blockNumber),
+            (blockNumber) => this._onEndConfirmation(blockNumber)
+          );
+          await this.transport.initialize();
+
+          // Get webcam stream
+          this.mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
+            audio: true
+          });
+          preview.srcObject = this.mediaStream;
+
+          // Create MediaRecorder
+          const mimeType = getSupportedMimeType();
+          this.mediaRecorder = new MediaRecorder(this.mediaStream, {
+            mimeType: mimeType,
+            videoBitsPerSecond: 1500000
+          });
+
+          // Send metadata packet
+          const metadata = {
+            mimeType: this.mediaRecorder.mimeType,
+            videoBitsPerSecond: 1500000,
+            startTime: Date.now()
+          };
+          const metadataPacket = DVFProtocol.createMetadataPacket(metadata);
+          await this.transport.send(metadataPacket, true, false);
+          this.packetCount++;
+          logTx(`META packet: ${metadataPacket.length}B`, 'pending');
+
+          codecInfo.innerHTML = `
+            <strong>MIME Type:</strong> ${metadata.mimeType}<br>
+            <strong>Video Bitrate:</strong> ${metadata.videoBitsPerSecond / 1000} kbps
+          `;
+
+          // Wire up MediaRecorder events
+          this.mediaRecorder.ondataavailable = (event) => this._handleChunk(event);
+          this.mediaRecorder.onerror = (event) => this._handleRecorderError(event);
+          this.mediaRecorder.onstop = () => this._handleRecorderStop();
+
+          // Start recording
+          this.mediaRecorder.start(500);
+
+          // Start stats update interval
+          this.statsInterval = setInterval(() => this._updateStats(), 500);
+
+          this._transitionTo(StreamState.STREAMING);
+
+        } catch (err) {
+          this.lastError = err;
+          console.error('Error starting stream:', err);
+          this._cleanup();
+          this._transitionTo(StreamState.ERROR);
+        }
+      }
+
+      stop() {
+        if (this.state !== StreamState.STREAMING) {
+          return; // Invalid transition
+        }
+
+        this._transitionTo(StreamState.STOPPING);
+
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+          this.mediaRecorder.stop();
+        }
+
+        // Camera cleanup
+        if (this.mediaStream) {
+          this.mediaStream.getTracks().forEach(track => track.stop());
+          this.mediaStream = null;
+        }
+        preview.srcObject = null;
+      }
+
+      async _handleChunk(event) {
+        if (event.data.size === 0 || this.state !== StreamState.STREAMING) {
+          return;
+        }
+
+        this.pendingChunkSends++;
+        try {
+          const buffer = await event.data.arrayBuffer();
+          const chunkData = new Uint8Array(buffer);
+          const packet = DVFProtocol.createStreamPacket(this.streamPosition, chunkData);
+          await this.transport.send(packet, false, false);
+          this.streamPosition += chunkData.length;
+          this.packetCount++;
+          this._updateStats();
+        } catch (err) {
+          console.error('Error processing chunk:', err);
+          logTx(`Chunk error: ${err.message}`, 'error');
+        } finally {
+          this.pendingChunkSends--;
+        }
+      }
+
+      _handleRecorderError(event) {
+        console.error('MediaRecorder error:', event.error);
+        this.lastError = event.error;
+        this._cleanup();
+        this._transitionTo(StreamState.ERROR);
+      }
+
+      async _handleRecorderStop() {
+        // Wait for pending chunk sends
+        while (this.pendingChunkSends > 0) {
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+
+        // Send end packet
+        const endPacket = DVFProtocol.createEndPacket(this.streamPosition);
+        await this.transport.send(endPacket, false, true);
+        this.packetCount++;
+        logTx(`END packet: pos=${this.streamPosition}`, 'pending');
+
+        this._transitionTo(StreamState.STOPPED);
+      }
+
+      _cleanup() {
+        if (this.statsInterval) {
+          clearInterval(this.statsInterval);
+          this.statsInterval = null;
+        }
+
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+          try { this.mediaRecorder.stop(); } catch (e) {}
+        }
+        this.mediaRecorder = null;
+
+        if (this.mediaStream) {
+          this.mediaStream.getTracks().forEach(track => track.stop());
+          this.mediaStream = null;
+        }
+        preview.srcObject = null;
+      }
     }
 
     // ============================================
-    // Main Functions
+    // Initialize State Machine
     // ============================================
-    async function startStreaming() {
-      try {
-        // Reset state
-        packetCount = 0;
-        streamPosition = 0;
-        startBlock = null;
-        pendingChunkSends = 0;
+    const streamingMachine = new StreamingStateMachine(CONFIG);
 
-        // Initialize blockchain transport with callbacks
-        transport = new BlockchainTransport(CONFIG, onFirstConfirmation, onEndConfirmation);
-        await transport.initialize();
-
-        updateStatus('Connected to blockchain. Starting webcam...', 'connected');
-
-        // Get webcam stream
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: 640 },
-            height: { ideal: 480 },
-            frameRate: { ideal: 30 }
-          },
-          audio: true
-        });
-
-        preview.srcObject = stream;
-
-        const mimeType = getSupportedMimeType();
-
-        mediaRecorder = new MediaRecorder(stream, {
-          mimeType: mimeType,
-          videoBitsPerSecond: 1500000
-        });
-
-        // Build and send metadata packet
-        const metadata = {
-          mimeType: mediaRecorder.mimeType,
-          videoBitsPerSecond: 1500000,
-          startTime: Date.now()
-        };
-
-        const metadataPacket = DVFProtocol.createMetadataPacket(metadata);
-        await transport.send(metadataPacket, true, false); // isFirst = true
-        packetCount++;
-
-        logTx(`META packet: ${metadataPacket.length}B`, 'pending');
-
-        codecInfo.innerHTML = `
-          <strong>MIME Type:</strong> ${metadata.mimeType}<br>
-          <strong>Video Bitrate:</strong> ${metadata.videoBitsPerSecond / 1000} kbps
-        `;
-
-        // Handle data chunks
-        mediaRecorder.ondataavailable = async (event) => {
-          if (event.data.size > 0) {
-            pendingChunkSends++;
-            try {
-              const buffer = await event.data.arrayBuffer();
-              const chunkData = new Uint8Array(buffer);
-
-              const packet = DVFProtocol.createStreamPacket(streamPosition, chunkData);
-              await transport.send(packet, false, false);
-
-              streamPosition += chunkData.length;
-              packetCount++;
-              updateStats();
-
-            } catch (err) {
-              console.error('Error processing chunk:', err);
-              logTx(`Chunk error: ${err.message}`, 'error');
-            } finally {
-              pendingChunkSends--;
-            }
-          }
-        };
-
-        mediaRecorder.onerror = (event) => {
-          console.error('MediaRecorder error:', event.error);
-          updateStatus('Recording error: ' + event.error.message, 'error');
-        };
-
-        mediaRecorder.onstop = async () => {
-          // Wait for any pending chunk sends to complete
-          while (pendingChunkSends > 0) {
-            await new Promise(resolve => setTimeout(resolve, 10));
-          }
-
-          // Now send end packet with correct final streamPosition
-          const endPacket = DVFProtocol.createEndPacket(streamPosition);
-          await transport.send(endPacket, false, true); // isEnd = true
-          packetCount++;
-
-          logTx(`END packet: pos=${streamPosition}`, 'pending');
-          updateStats();
-          updateStatus('Streaming stopped. Waiting for confirmations...', '');
-        };
-
-        // Start recording - generate chunk every 500ms
-        mediaRecorder.start(500);
-
-        updateStatus('Streaming to blockchain...', 'connected');
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-
-        // Update stats periodically
-        setInterval(updateStats, 500);
-
-      } catch (err) {
-        console.error('Error starting stream:', err);
-        updateStatus('Error: ' + err.message, 'error');
-      }
-    }
-
-    function stopStreaming() {
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
-      }
-
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-      }
-
-      preview.srcObject = null;
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
+    // Global updateStats for BlockchainTransport callbacks
+    function updateStats() {
+      streamingMachine._updateStats();
     }
 
     // ============================================
     // Event Listeners
     // ============================================
-    startBtn.addEventListener('click', startStreaming);
-    stopBtn.addEventListener('click', stopStreaming);
+    startBtn.addEventListener('click', () => streamingMachine.start());
+    stopBtn.addEventListener('click', () => streamingMachine.stop());
 
     window.addEventListener('beforeunload', () => {
-      stopStreaming();
-      // Note: transport.close() removed - let confirmations continue
-      // The page is closing anyway, so we don't need to clean up
+      streamingMachine._cleanup();
     });
 
     // Display config
