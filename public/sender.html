@@ -59,6 +59,17 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
+    #previewBtn {
+      background: #85E6FF;
+      color: #0E091C;
+    }
+    #previewBtn:hover:not(:disabled) {
+      background: #6dd4ed;
+    }
+    #previewBtn.active {
+      background: #B9E3F9;
+      border: 2px solid #85E6FF;
+    }
     #startBtn {
       background: #6E54FF;
       color: #FFFFFF;
@@ -222,13 +233,14 @@
   </div>
 
   <div class="status" id="status">
-    Click "Start Streaming" to begin capturing your webcam and broadcasting to the blockchain.
+    Click "Preview Camera" to check your framing before streaming.
   </div>
 
   <video id="preview" autoplay muted playsinline></video>
 
   <div class="controls">
-    <button id="startBtn">Start Streaming</button>
+    <button id="previewBtn">Preview Camera</button>
+    <button id="startBtn" disabled>Start Streaming</button>
     <button id="stopBtn" disabled>Stop Streaming</button>
   </div>
 
@@ -317,6 +329,12 @@
       rpcUrls: {
         default: { http: [CONFIG.rpcUrl] }
       }
+    });
+
+    // Module-level public client for fetching current block
+    const publicClient = createPublicClient({
+      chain: localChain,
+      transport: http(CONFIG.rpcUrl)
     });
 
     // ============================================
@@ -603,6 +621,7 @@
     // DOM Elements
     // ============================================
     const preview = document.getElementById('preview');
+    const previewBtn = document.getElementById('previewBtn');
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const statusEl = document.getElementById('status');
@@ -653,6 +672,110 @@
     }
 
     // ============================================
+    // Video Activation State Machine
+    // ============================================
+    const VideoState = {
+      OFF: 'OFF',
+      ACTIVATING: 'ACTIVATING',
+      PREVIEWING: 'PREVIEWING',
+      ERROR: 'ERROR'
+    };
+
+    class VideoActivationMachine {
+      constructor() {
+        this.state = VideoState.OFF;
+        this.mediaStream = null;
+        this.lastError = null;
+      }
+
+      _transitionTo(newState) {
+        const oldState = this.state;
+        this.state = newState;
+        logTx(`Video: ${oldState} → ${newState}`, 'pending');
+        this._updateUI();
+      }
+
+      _updateUI() {
+        // Preview button state
+        const canPreview = this.state === VideoState.OFF || this.state === VideoState.ERROR;
+        const isPreviewing = this.state === VideoState.PREVIEWING;
+
+        previewBtn.disabled = this.state === VideoState.ACTIVATING;
+        previewBtn.textContent = isPreviewing ? 'Stop Preview' : 'Preview Camera';
+        previewBtn.classList.toggle('active', isPreviewing);
+
+        // Start button only enabled when previewing and not streaming
+        startBtn.disabled = this.state !== VideoState.PREVIEWING ||
+          (streamingMachine && streamingMachine.state !== StreamState.IDLE &&
+           streamingMachine.state !== StreamState.STOPPED &&
+           streamingMachine.state !== StreamState.ERROR);
+
+        // Status message for video states (only if not streaming)
+        if (!streamingMachine || streamingMachine.state === StreamState.IDLE) {
+          const statusConfig = {
+            [VideoState.OFF]: { message: 'Click "Preview Camera" to check your framing before streaming.', type: '' },
+            [VideoState.ACTIVATING]: { message: 'Activating camera...', type: '' },
+            [VideoState.PREVIEWING]: { message: 'Camera preview active. Click "Start Streaming" when ready.', type: 'connected' },
+            [VideoState.ERROR]: { message: `Camera error: ${this.lastError?.message || 'Unknown error'}`, type: 'error' }
+          };
+          const { message, type } = statusConfig[this.state];
+          statusEl.textContent = message;
+          statusEl.className = 'status ' + type;
+        }
+      }
+
+      async toggle() {
+        if (this.state === VideoState.OFF || this.state === VideoState.ERROR) {
+          await this.activate();
+        } else if (this.state === VideoState.PREVIEWING) {
+          this.deactivate();
+        }
+      }
+
+      async activate() {
+        if (this.state !== VideoState.OFF && this.state !== VideoState.ERROR) {
+          return;
+        }
+
+        this._transitionTo(VideoState.ACTIVATING);
+
+        try {
+          this.mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
+            audio: true
+          });
+          preview.srcObject = this.mediaStream;
+          this._transitionTo(VideoState.PREVIEWING);
+        } catch (err) {
+          this.lastError = err;
+          console.error('Error activating camera:', err);
+          this._transitionTo(VideoState.ERROR);
+        }
+      }
+
+      deactivate() {
+        if (this.state !== VideoState.PREVIEWING) {
+          return;
+        }
+
+        if (this.mediaStream) {
+          this.mediaStream.getTracks().forEach(track => track.stop());
+          this.mediaStream = null;
+        }
+        preview.srcObject = null;
+        this._transitionTo(VideoState.OFF);
+      }
+
+      getMediaStream() {
+        return this.mediaStream;
+      }
+
+      isActive() {
+        return this.state === VideoState.PREVIEWING;
+      }
+    }
+
+    // ============================================
     // Streaming State Machine
     // ============================================
     const StreamState = {
@@ -665,14 +788,14 @@
     };
 
     class StreamingStateMachine {
-      constructor(config) {
+      constructor(config, videoMachine) {
         this.config = config;
+        this.videoMachine = videoMachine;
         this.state = StreamState.IDLE;
 
         // Resources (owned by state machine)
         this.transport = null;
         this.mediaRecorder = null;
-        this.mediaStream = null;
 
         // Stream data
         this.packetCount = 0;
@@ -695,15 +818,19 @@
       // Derive UI from current state
       _updateUI() {
         // Button states
-        const canStart = this.state === StreamState.IDLE || this.state === StreamState.STOPPED || this.state === StreamState.ERROR;
+        const canStart = (this.state === StreamState.IDLE || this.state === StreamState.STOPPED || this.state === StreamState.ERROR)
+          && this.videoMachine.isActive();
         const canStop = this.state === StreamState.STREAMING;
         startBtn.disabled = !canStart;
         stopBtn.disabled = !canStop;
 
+        // Preview button disabled while streaming
+        previewBtn.disabled = this.state === StreamState.STREAMING || this.state === StreamState.STOPPING;
+
         // Status message and style
         const statusConfig = {
-          [StreamState.IDLE]: { message: 'Click "Start Streaming" to begin capturing your webcam and broadcasting to the blockchain.', type: '' },
-          [StreamState.INITIALIZING]: { message: 'Initializing blockchain connection and webcam...', type: '' },
+          [StreamState.IDLE]: { message: this.videoMachine.isActive() ? 'Camera preview active. Click "Start Streaming" when ready.' : 'Click "Preview Camera" to check your framing before streaming.', type: this.videoMachine.isActive() ? 'connected' : '' },
+          [StreamState.INITIALIZING]: { message: 'Initializing blockchain connection...', type: '' },
           [StreamState.STREAMING]: { message: 'Streaming to blockchain...', type: 'connected' },
           [StreamState.STOPPING]: { message: 'Stopping stream, sending final packet...', type: '' },
           [StreamState.STOPPED]: { message: 'Streaming stopped. Waiting for confirmations...', type: '' },
@@ -762,6 +889,12 @@
           return; // Invalid transition
         }
 
+        if (!this.videoMachine.isActive()) {
+          this.lastError = new Error('Camera not active. Start preview first.');
+          this._transitionTo(StreamState.ERROR);
+          return;
+        }
+
         this._transitionTo(StreamState.INITIALIZING);
 
         try {
@@ -780,16 +913,12 @@
           );
           await this.transport.initialize();
 
-          // Get webcam stream
-          this.mediaStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
-            audio: true
-          });
-          preview.srcObject = this.mediaStream;
+          // Use existing media stream from video machine
+          const mediaStream = this.videoMachine.getMediaStream();
 
           // Create MediaRecorder
           const mimeType = getSupportedMimeType();
-          this.mediaRecorder = new MediaRecorder(this.mediaStream, {
+          this.mediaRecorder = new MediaRecorder(mediaStream, {
             mimeType: mimeType,
             videoBitsPerSecond: 1500000
           });
@@ -841,13 +970,7 @@
         if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
           this.mediaRecorder.stop();
         }
-
-        // Camera cleanup
-        if (this.mediaStream) {
-          this.mediaStream.getTracks().forEach(track => track.stop());
-          this.mediaStream = null;
-        }
-        preview.srcObject = null;
+        // Note: Camera stays active (managed by video machine)
       }
 
       async _handleChunk(event) {
@@ -904,19 +1027,15 @@
           try { this.mediaRecorder.stop(); } catch (e) {}
         }
         this.mediaRecorder = null;
-
-        if (this.mediaStream) {
-          this.mediaStream.getTracks().forEach(track => track.stop());
-          this.mediaStream = null;
-        }
-        preview.srcObject = null;
+        // Note: Camera stays active (managed by video machine)
       }
     }
 
     // ============================================
-    // Initialize State Machine
+    // Initialize State Machines
     // ============================================
-    const streamingMachine = new StreamingStateMachine(CONFIG);
+    const videoMachine = new VideoActivationMachine();
+    const streamingMachine = new StreamingStateMachine(CONFIG, videoMachine);
 
     // Global updateStats for BlockchainTransport callbacks
     function updateStats() {
@@ -926,11 +1045,38 @@
     // ============================================
     // Event Listeners
     // ============================================
+    previewBtn.addEventListener('click', async () => {
+      await videoMachine.toggle();
+
+      // If just activated preview, generate preview stream code
+      if (videoMachine.state === VideoState.PREVIEWING) {
+        try {
+          const currentBlock = await publicClient.getBlockNumber();
+          const senderAddress = privateKeyToAccount(CONFIG.privateKey).address;
+          const previewCode = StreamCode.create(senderAddress, Number(currentBlock));
+          streamcodeBox.style.display = 'block';
+          streamcodeValue.textContent = previewCode;
+          window.location.hash = previewCode;
+        } catch (err) {
+          console.error('Error generating preview stream code:', err);
+        }
+      } else {
+        // Preview stopped - hide stream code if not streaming
+        if (streamingMachine.state === StreamState.IDLE) {
+          streamcodeBox.style.display = 'none';
+          window.location.hash = '';
+        }
+      }
+
+      // Update streaming UI after video state changes
+      streamingMachine._updateUI();
+    });
     startBtn.addEventListener('click', () => streamingMachine.start());
     stopBtn.addEventListener('click', () => streamingMachine.stop());
 
     window.addEventListener('beforeunload', () => {
       streamingMachine._cleanup();
+      videoMachine.deactivate();
     });
 
     // Display config

@@ -103,8 +103,20 @@
       font-size: 13px;
       color: #0E091C;
       word-break: break-all;
-      margin-bottom: 20px;
+      margin-bottom: 8px;
       text-align: center;
+    }
+    .change-stream-link {
+      display: block;
+      text-align: center;
+      color: #6E54FF;
+      font-size: 13px;
+      margin-bottom: 20px;
+      text-decoration: none;
+    }
+    .change-stream-link:hover {
+      color: #FFAE45;
+      text-decoration: underline;
     }
 
     video {
@@ -269,6 +281,7 @@
   <!-- Main viewer UI (hidden until stream code entered) -->
   <div class="viewer-ui" id="viewerUI">
     <div class="streamcode-display" id="streamcodeDisplay"></div>
+    <a href="#" class="change-stream-link" id="changeStreamLink">Watch a different stream</a>
 
     <video id="player" autoplay playsinline controls></video>
 
@@ -315,6 +328,10 @@
         <span class="label">Out-of-Order:</span>
         <span class="value" id="outOfOrder">0</span>
       </div>
+      <div class="stat-item">
+        <span class="label">Mode:</span>
+        <span class="value" id="fetchMode">-</span>
+      </div>
     </div>
 
     <div class="codec-info" id="codecInfo">
@@ -358,34 +375,138 @@
     });
 
     // ============================================
-    // Blockchain Listener
+    // State Enums
     // ============================================
-    class BlockchainListener {
-      constructor(config, onPacket, onComplete) {
+    const FetcherState = {
+      IDLE: 'IDLE',
+      FETCHING: 'FETCHING',
+      FOUND: 'FOUND',
+      NOT_FOUND: 'NOT_FOUND',
+      ERROR: 'ERROR'
+    };
+
+    const DispatcherState = {
+      CATCHING_UP: 'CATCHING_UP',
+      FOLLOWING_TIP: 'FOLLOWING_TIP',
+      STOPPED: 'STOPPED'
+    };
+
+    // ============================================
+    // BlockFetcher - Worker State Machine
+    // ============================================
+    class BlockFetcher {
+      constructor(id, publicClient, callbacks) {
+        this.id = id;
+        this.publicClient = publicClient;
+        this.callbacks = callbacks; // { onComplete }
+
+        this.state = FetcherState.IDLE;
+        this.blockNumber = null;
+        this.result = null;
+        this.error = null;
+      }
+
+      _transitionTo(newState) {
+        this.state = newState;
+      }
+
+      assign(blockNumber) {
+        this.blockNumber = blockNumber;
+        this.result = null;
+        this.error = null;
+        this._transitionTo(FetcherState.FETCHING);
+        this._fetch();
+      }
+
+      async _fetch() {
+        try {
+          const block = await this.publicClient.getBlock({
+            blockNumber: this.blockNumber,
+            includeTransactions: true
+          });
+
+          if (block) {
+            this.result = block;
+            this._transitionTo(FetcherState.FOUND);
+          } else {
+            this._transitionTo(FetcherState.NOT_FOUND);
+          }
+        } catch (err) {
+          if (err.message?.includes('block') || err.message?.includes('not found') || err.message?.includes('could not be found')) {
+            this._transitionTo(FetcherState.NOT_FOUND);
+          } else {
+            this.error = err;
+            this._transitionTo(FetcherState.ERROR);
+          }
+        }
+
+        this.callbacks.onComplete(this);
+      }
+
+      reset() {
+        this.state = FetcherState.IDLE;
+        this.blockNumber = null;
+        this.result = null;
+        this.error = null;
+      }
+    }
+
+    // ============================================
+    // FetchDispatcher - Coordinator State Machine
+    // ============================================
+    class FetchDispatcher {
+      constructor(config, callbacks) {
         this.config = config;
-        this.onPacket = onPacket;
-        this.onComplete = onComplete;
+        this.callbacks = callbacks; // { onBlock, onModeChange, onComplete }
 
         this.publicClient = createPublicClient({
           chain: localChain,
           transport: http(config.rpcUrl)
         });
 
-        this.nextBlockToFetch = null;
-        this.endBlock = null;
-        this.isRunning = false;
-        this.pollTimer = null;
-        this.blocksScanned = 0;
-        this.autoStopTimer = null;
-
+        this.parallelism = config.parallelism || 2;
+        this.pollInterval = config.pollInterval || 300;
         this.senderAddress = config.senderAddress.toLowerCase();
         this.destAddress = config.destAddress.toLowerCase();
+
+        this.state = DispatcherState.STOPPED;
+        this.workers = [];
+        this.nextBlockToAssign = null;
+        this.endBlock = null;
+        this.fetchedBlocks = new Set();
+
+        // Ordered delivery buffer
+        this.deliveryBuffer = new Map();
+        this.nextBlockToDeliver = null;
+
+        this.blocksScanned = 0;
+        this.pollTimer = null;
+        this.autoStopTimer = null;
+        this.autoStopTimeout = config.autoStopTimeout || 20 * 60 * 1000;
+
+        // Create workers
+        for (let i = 0; i < this.parallelism; i++) {
+          this.workers.push(new BlockFetcher(i, this.publicClient, {
+            onComplete: (worker) => this._onWorkerComplete(worker)
+          }));
+        }
+      }
+
+      _transitionTo(newState) {
+        const oldState = this.state;
+        this.state = newState;
+        if (oldState !== newState && this.callbacks.onModeChange) {
+          this.callbacks.onModeChange(oldState, newState);
+        }
       }
 
       async start(startBlock, endBlock = null) {
-        this.nextBlockToFetch = BigInt(startBlock);
+        this.nextBlockToAssign = BigInt(startBlock);
+        this.nextBlockToDeliver = BigInt(startBlock);
         this.endBlock = endBlock !== null ? BigInt(endBlock) : null;
-        this.isRunning = true;
+        this.fetchedBlocks.clear();
+        this.deliveryBuffer.clear();
+        this.blocksScanned = 0;
 
         logBlock(`Starting from block ${startBlock}${endBlock ? ` to ${endBlock}` : ' (live)'}`, 'block');
 
@@ -393,17 +514,20 @@
           this.autoStopTimer = setTimeout(() => {
             logBlock('Auto-stopping after 20 minute timeout', 'error');
             this.stop();
-            if (this.onComplete) {
-              this.onComplete('timeout');
+            if (this.callbacks.onComplete) {
+              this.callbacks.onComplete('timeout');
             }
-          }, this.config.autoStopTimeout);
+          }, this.autoStopTimeout);
         }
 
-        this.poll();
+        // Start in CATCHING_UP mode
+        this._transitionTo(DispatcherState.CATCHING_UP);
+        this._dispatchWork();
       }
 
       stop() {
-        this.isRunning = false;
+        this._transitionTo(DispatcherState.STOPPED);
+
         if (this.pollTimer) {
           clearTimeout(this.pollTimer);
           this.pollTimer = null;
@@ -412,67 +536,161 @@
           clearTimeout(this.autoStopTimer);
           this.autoStopTimer = null;
         }
+
+        // Reset all workers
+        for (const worker of this.workers) {
+          worker.reset();
+        }
       }
 
-      async poll() {
-        if (!this.isRunning) return;
+      _dispatchWork() {
+        if (this.state === DispatcherState.STOPPED) return;
 
-        try {
-          const block = await this.publicClient.getBlock({
-            blockNumber: this.nextBlockToFetch,
-            includeTransactions: true
-          }).catch(() => null);
+        const idleWorkers = this.workers.filter(w => w.state === FetcherState.IDLE);
 
-          if (block) {
-            this.blocksScanned++;
-            updateCurrentBlock(this.nextBlockToFetch, this.blocksScanned);
-
-            let packetsFound = 0;
-
-            for (const tx of block.transactions) {
-              if (tx.from.toLowerCase() === this.senderAddress &&
-                  tx.to && tx.to.toLowerCase() === this.destAddress &&
-                  tx.input && tx.input !== '0x') {
-
-                try {
-                  const packetData = hexToBytes(tx.input);
-
-                  if (DVFProtocol.validateMagic(packetData)) {
-                    packetsFound++;
-                    this.onPacket(packetData);
-                  }
-                } catch (err) {
-                  logBlock(`Error parsing TX ${tx.hash.slice(0, 10)}...: ${err.message}`, 'error');
-                }
-              }
+        if (this.state === DispatcherState.CATCHING_UP) {
+          // Assign blocks to all idle workers
+          for (const worker of idleWorkers) {
+            if (this.endBlock !== null && this.nextBlockToAssign > this.endBlock) {
+              break;
             }
-
-            if (packetsFound > 0) {
-              logBlock(`Block ${this.nextBlockToFetch}: ${packetsFound} packet(s) found`, 'packet');
-            } else {
-              if (this.blocksScanned % 10 === 0) {
-                logBlock(`Block ${this.nextBlockToFetch}: no packets (scanned ${this.blocksScanned} blocks)`, 'empty');
-              }
+            if (!this.fetchedBlocks.has(this.nextBlockToAssign.toString())) {
+              this.fetchedBlocks.add(this.nextBlockToAssign.toString());
+              worker.assign(this.nextBlockToAssign);
+              this.nextBlockToAssign++;
             }
+          }
+        } else if (this.state === DispatcherState.FOLLOWING_TIP) {
+          // Only use one worker to probe the next block
+          if (idleWorkers.length > 0 && !this.fetchedBlocks.has(this.nextBlockToAssign.toString())) {
+            if (this.endBlock === null || this.nextBlockToAssign <= this.endBlock) {
+              this.fetchedBlocks.add(this.nextBlockToAssign.toString());
+              idleWorkers[0].assign(this.nextBlockToAssign);
+              this.nextBlockToAssign++;
+            }
+          }
+        }
+      }
 
-            this.nextBlockToFetch++;
+      _onWorkerComplete(worker) {
+        if (this.state === DispatcherState.STOPPED) {
+          worker.reset();
+          return;
+        }
 
-            // Check if we've finished scanning after processing this block
-            if (this.endBlock !== null && this.nextBlockToFetch > this.endBlock) {
-              logBlock(`Finished scanning through block ${this.endBlock}`, 'block');
-              this.stop();
-              if (this.onComplete) {
-                this.onComplete('complete');
-              }
-              return;
+        const blockNum = worker.blockNumber;
+
+        if (worker.state === FetcherState.FOUND) {
+          // Store in delivery buffer for ordered delivery
+          this.deliveryBuffer.set(blockNum.toString(), worker.result);
+          this._tryDeliver();
+
+          // Check if we should switch from FOLLOWING_TIP to CATCHING_UP
+          if (this.state === DispatcherState.FOLLOWING_TIP) {
+            // Calculate gap: how many undelivered blocks are there?
+            const gap = this.nextBlockToAssign - this.nextBlockToDeliver;
+            if (gap > BigInt(this.parallelism)) {
+              this._transitionTo(DispatcherState.CATCHING_UP);
             }
           }
 
-        } catch (err) {
-          logBlock(`Poll error: ${err.message}`, 'error');
+          worker.reset();
+          this._dispatchWork();
+
+        } else if (worker.state === FetcherState.NOT_FOUND) {
+          // Hit the chain tip
+          if (this.state === DispatcherState.CATCHING_UP) {
+            this._transitionTo(DispatcherState.FOLLOWING_TIP);
+
+            // Cancel workers fetching blocks >= this one
+            for (const w of this.workers) {
+              if (w !== worker && w.state === FetcherState.FETCHING && w.blockNumber >= blockNum) {
+                // We can't actually cancel, but we'll ignore their results
+                this.fetchedBlocks.delete(w.blockNumber.toString());
+              }
+            }
+          }
+
+          // Reset nextBlockToAssign to retry the earliest unfound block
+          // Only update if this block is earlier than what we're about to fetch
+          if (blockNum < this.nextBlockToAssign) {
+            this.nextBlockToAssign = blockNum;
+          }
+          this.fetchedBlocks.delete(blockNum.toString());
+
+          worker.reset();
+
+          // In FOLLOWING_TIP mode, schedule retry after poll interval
+          this.pollTimer = setTimeout(() => {
+            this._dispatchWork();
+          }, this.pollInterval);
+
+        } else if (worker.state === FetcherState.ERROR) {
+          logBlock(`Fetch error for block ${blockNum}: ${worker.error?.message}`, 'error');
+
+          // Remove from fetched so we can retry
+          this.fetchedBlocks.delete(blockNum.toString());
+          worker.reset();
+
+          // Schedule retry
+          this.pollTimer = setTimeout(() => {
+            this._dispatchWork();
+          }, this.pollInterval);
+        }
+      }
+
+      _tryDeliver() {
+        while (this.deliveryBuffer.has(this.nextBlockToDeliver.toString())) {
+          const block = this.deliveryBuffer.get(this.nextBlockToDeliver.toString());
+          this.deliveryBuffer.delete(this.nextBlockToDeliver.toString());
+
+          this.blocksScanned++;
+          this._processBlock(this.nextBlockToDeliver, block);
+
+          this.nextBlockToDeliver++;
+
+          // Check if we've finished
+          if (this.endBlock !== null && this.nextBlockToDeliver > this.endBlock) {
+            logBlock(`Finished scanning through block ${this.endBlock}`, 'block');
+            this.stop();
+            if (this.callbacks.onComplete) {
+              this.callbacks.onComplete('complete');
+            }
+            return;
+          }
+        }
+      }
+
+      _processBlock(blockNum, block) {
+        updateCurrentBlock(blockNum, this.blocksScanned);
+
+        let packetsFound = 0;
+
+        for (const tx of block.transactions) {
+          if (tx.from.toLowerCase() === this.senderAddress &&
+              tx.to && tx.to.toLowerCase() === this.destAddress &&
+              tx.input && tx.input !== '0x') {
+
+            try {
+              const packetData = hexToBytes(tx.input);
+
+              if (DVFProtocol.validateMagic(packetData)) {
+                packetsFound++;
+                this.callbacks.onBlock(blockNum, packetData);
+              }
+            } catch (err) {
+              logBlock(`Error parsing TX ${tx.hash.slice(0, 10)}...: ${err.message}`, 'error');
+            }
+          }
         }
 
-        this.pollTimer = setTimeout(() => this.poll(), this.config.pollInterval);
+        if (packetsFound > 0) {
+          logBlock(`Block ${blockNum}: ${packetsFound} packet(s) found`, 'packet');
+        } else {
+          if (this.blocksScanned % 10 === 0) {
+            logBlock(`Block ${blockNum}: no packets (scanned ${this.blocksScanned} blocks)`, 'empty');
+          }
+        }
       }
     }
 
@@ -497,10 +715,13 @@
     const streamcodeEntry = document.getElementById('streamcodeEntry');
     const viewerUI = document.getElementById('viewerUI');
     const streamcodeDisplay = document.getElementById('streamcodeDisplay');
+    const changeStreamLink = document.getElementById('changeStreamLink');
+    const fetchModeEl = document.getElementById('fetchMode');
 
     // ============================================
     // State
     // ============================================
+    let currentStreamCode = null;  // Track what we're loading to prevent re-entry
     let listener = null;
     let reassemblyBuffer = new ReassemblyBuffer();
     let mediaSource = null;
@@ -546,6 +767,13 @@
       streamSizeEl.textContent = formatBytes(totalStreamBytes);
       reassembledSizeEl.textContent = formatBytes(reassemblyBuffer.reassembledPosition);
       outOfOrderEl.textContent = reassemblyBuffer.outOfOrderCount;
+    }
+
+    function updateModeDisplay(mode) {
+      const displayName = mode === DispatcherState.CATCHING_UP ? 'Catching Up' :
+                          mode === DispatcherState.FOLLOWING_TIP ? 'Following Tip' :
+                          mode === DispatcherState.STOPPED ? 'Stopped' : '-';
+      fetchModeEl.textContent = displayName;
     }
 
     function updateReassemblyVisual() {
@@ -773,6 +1001,7 @@
       outOfOrderEl.textContent = '0';
       blocksScannedEl.textContent = '0';
       bufferFill.style.width = '0%';
+      fetchModeEl.textContent = '-';
       codecInfo.textContent = 'Waiting for codec information from blockchain...';
     }
 
@@ -789,6 +1018,11 @@
     async function loadStream(streamCode) {
       clearStreamcodeError();
 
+      // Prevent re-entry when setting hash triggers hashchange
+      if (currentStreamCode === streamCode) {
+        return;
+      }
+
       const parsed = StreamCode.parse(streamCode);
 
       if (parsed.error) {
@@ -798,6 +1032,7 @@
 
       resetState();
 
+      currentStreamCode = streamCode;
       window.location.hash = streamCode;
 
       currentStreamConfig = parsed;
@@ -806,15 +1041,23 @@
       updateStatus(`Connecting to blockchain for ${parsed.isLive ? 'live' : 'recorded'} stream...`, 'waiting');
 
       try {
-        const listenerConfig = {
+        const dispatcherConfig = {
           rpcUrl: CONFIG.rpcUrl,
           senderAddress: parsed.senderAddress,
           destAddress: CONFIG.destAddress,
           pollInterval: CONFIG.pollInterval,
-          autoStopTimeout: CONFIG.autoStopTimeout
+          autoStopTimeout: CONFIG.autoStopTimeout,
+          parallelism: 2
         };
 
-        listener = new BlockchainListener(listenerConfig, handlePacket, onStreamComplete);
+        listener = new FetchDispatcher(dispatcherConfig, {
+          onBlock: (blockNum, packetData) => handlePacket(packetData),
+          onModeChange: (oldMode, newMode) => {
+            logBlock(`Mode: ${oldMode} -> ${newMode}`, 'block');
+            updateModeDisplay(newMode);
+          },
+          onComplete: onStreamComplete
+        });
         await listener.start(parsed.startBlock, parsed.endBlock);
 
         updateStatus(`Listening for video packets from block ${parsed.startBlock}...`, 'connected');
@@ -833,6 +1076,23 @@
       if (player.paused) {
         player.play().catch(console.log);
       }
+    });
+
+    changeStreamLink.addEventListener('click', (e) => {
+      e.preventDefault();
+
+      // Stop current stream and reset state
+      resetState();
+      currentStreamCode = null;  // Allow re-loading the same stream
+
+      // Return to entry view
+      viewerUI.classList.remove('active');
+      streamcodeEntry.classList.remove('hidden');
+
+      // Clear URL and input
+      window.location.hash = '';
+      streamcodeInput.value = '';
+      streamcodeInput.focus();
     });
 
     streamcodeInput.addEventListener('keydown', (e) => {
