@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Video Sender - Blockchain Transport</title>
+  <title>Video Broadcaster - Blockchain Transport</title>
   <style>
     * {
       box-sizing: border-box;
@@ -864,7 +864,6 @@
       _updateStreamCode(code) {
         streamcodeBox.style.display = 'block';
         streamcodeValue.textContent = code;
-        window.location.hash = code;
       }
 
       _onFirstConfirmation(blockNumber) {
@@ -1056,7 +1055,6 @@
           const previewCode = StreamCode.create(senderAddress, Number(currentBlock));
           streamcodeBox.style.display = 'block';
           streamcodeValue.textContent = previewCode;
-          window.location.hash = previewCode;
         } catch (err) {
           console.error('Error generating preview stream code:', err);
         }
@@ -1064,7 +1062,6 @@
         // Preview stopped - hide stream code if not streaming
         if (streamingMachine.state === StreamState.IDLE) {
           streamcodeBox.style.display = 'none';
-          window.location.hash = '';
         }
       }
 

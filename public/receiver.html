@@ -732,6 +732,9 @@
     let isInitialized = false;
     let pendingAppend = [];
     let currentStreamConfig = null;
+    let hasUserInteracted = false;  // Track if user has interacted with page
+    let hasStartedPlayback = false;  // Track if we've started playback
+    const MIN_BUFFER_SECONDS = 1.5;  // Minimum buffer before auto-play
 
     // ============================================
     // UI Helpers
@@ -814,6 +817,30 @@
       }
     }
 
+    function tryAutoPlay() {
+      // Only auto-play if user has interacted and we haven't started yet
+      if (!hasUserInteracted || hasStartedPlayback || !sourceBuffer) return;
+
+      try {
+        const buffered = sourceBuffer.buffered;
+        if (buffered.length > 0) {
+          const bufferedEnd = buffered.end(buffered.length - 1);
+          const currentTime = player.currentTime;
+          const bufferAhead = bufferedEnd - currentTime;
+
+          if (bufferAhead >= MIN_BUFFER_SECONDS) {
+            hasStartedPlayback = true;
+            player.play().catch(err => {
+              console.log('Autoplay blocked:', err);
+            });
+            logBlock(`Auto-playing with ${bufferAhead.toFixed(1)}s buffered`, 'packet');
+          }
+        }
+      } catch (e) {
+        // Ignore buffer check errors
+      }
+    }
+
     function showStreamcodeError(message) {
       streamcodeError.textContent = message;
     }
@@ -858,10 +885,6 @@
 
           isInitialized = true;
           updateStatus('Receiving stream from blockchain', 'connected');
-
-          player.play().catch(err => {
-            console.log('Autoplay blocked:', err);
-          });
 
           processPendingAppends();
 
@@ -908,6 +931,7 @@
       }
 
       updateReassemblyVisual();
+      tryAutoPlay();
     }
 
     // ============================================
@@ -993,6 +1017,7 @@
       packetCount = 0;
       totalStreamBytes = 0;
       isInitialized = false;
+      hasStartedPlayback = false;
 
       currentBlockEl.textContent = '-';
       packetCountEl.textContent = '0';
@@ -1099,12 +1124,14 @@
       if (e.key === 'Enter') {
         const code = streamcodeInput.value.trim();
         if (code) {
+          hasUserInteracted = true;
           loadStream(code);
         }
       }
     });
 
     streamcodeInput.addEventListener('paste', (e) => {
+      hasUserInteracted = true;
       setTimeout(() => {
         const code = streamcodeInput.value.trim();
         if (code && code.startsWith('dvf1')) {
