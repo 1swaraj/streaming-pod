@@ -337,6 +337,9 @@
       transport: http(CONFIG.rpcUrl)
     });
 
+    // Module-level account derived from private key
+    const account = privateKeyToAccount(CONFIG.privateKey);
+
     // ============================================
     // Packet State Machine
     // ============================================
@@ -348,11 +351,13 @@
     };
 
     class PacketStateMachine {
-      constructor(nonce, packetData, config, callbacks) {
+      constructor(nonce, packetData, config, callbacks, isFirst = false, isEnd = false) {
         this.nonce = nonce;
         this.packetData = packetData;
         this.config = config;
         this.callbacks = callbacks;  // { onConfirmed, onFailed }
+        this.isFirst = isFirst;
+        this.isEnd = isEnd;
 
         this.state = PacketState.SENDING;
         this.txHashes = [];          // Track ALL tx hashes (original + replacements)
@@ -360,8 +365,6 @@
         this.priorityFee = config.basePriorityFee;
         this.retryCount = 0;
         this.lastSendTime = null;
-        this.isFirst = false;
-        this.isEnd = false;
       }
 
       _transitionTo(newState) {
@@ -480,19 +483,16 @@
     // Blockchain Transport (State Machine Manager)
     // ============================================
     class BlockchainTransport {
-      constructor(config, onFirstConfirmation, onEndConfirmation) {
+      constructor(config, publicClient, account, onFirstConfirmation, onEndConfirmation, onStatsUpdate) {
         this.config = config;
-        this.account = privateKeyToAccount(config.privateKey);
+        this.publicClient = publicClient;
+        this.account = account;
         this.onFirstConfirmation = onFirstConfirmation;
         this.onEndConfirmation = onEndConfirmation;
+        this.onStatsUpdate = onStatsUpdate;
 
         this.walletClient = createWalletClient({
           account: this.account,
-          chain: localChain,
-          transport: http(config.rpcUrl)
-        });
-
-        this.publicClient = createPublicClient({
           chain: localChain,
           transport: http(config.rpcUrl)
         });
@@ -532,7 +532,7 @@
         // Track retries
         this.totalRetries += machine.retryCount;
 
-        updateStats();
+        this.onStatsUpdate();
 
         // Check if this is the first confirmation
         if (machine.isFirst && !this.firstConfirmed) {
@@ -550,7 +550,7 @@
 
       _handleFailed(machine, error) {
         this.totalRetries += machine.retryCount;
-        updateStats();
+        this.onStatsUpdate();
         console.error(`Packet nonce=${machine.nonce} failed:`, error);
       }
 
@@ -565,12 +565,10 @@
         const machine = new PacketStateMachine(nonce, packetData, this.config, {
           onConfirmed: (receipt) => this._handleConfirmed(machine, receipt),
           onFailed: (error) => this._handleFailed(machine, error)
-        });
-        machine.isFirst = isFirst;
-        machine.isEnd = isEnd;
+        }, isFirst, isEnd);
 
         this.packets.set(nonce, machine);
-        updateStats();
+        this.onStatsUpdate();
 
         await machine.start(this.walletClient);
       }
@@ -581,7 +579,7 @@
             await machine.tick(this.publicClient, this.walletClient);
           }
         }
-        updateStats();
+        this.onStatsUpdate();
       }
 
       getPendingCount() {
@@ -907,8 +905,11 @@
           // Initialize blockchain transport
           this.transport = new BlockchainTransport(
             this.config,
+            publicClient,
+            account,
             (blockNumber) => this._onFirstConfirmation(blockNumber),
-            (blockNumber) => this._onEndConfirmation(blockNumber)
+            (blockNumber) => this._onEndConfirmation(blockNumber),
+            () => this._updateStats()
           );
           await this.transport.initialize();
 
@@ -1036,11 +1037,6 @@
     const videoMachine = new VideoActivationMachine();
     const streamingMachine = new StreamingStateMachine(CONFIG, videoMachine);
 
-    // Global updateStats for BlockchainTransport callbacks
-    function updateStats() {
-      streamingMachine._updateStats();
-    }
-
     // ============================================
     // Event Listeners
     // ============================================
@@ -1051,8 +1047,7 @@
       if (videoMachine.state === VideoState.PREVIEWING) {
         try {
           const currentBlock = await publicClient.getBlockNumber();
-          const senderAddress = privateKeyToAccount(CONFIG.privateKey).address;
-          const previewCode = StreamCode.create(senderAddress, Number(currentBlock));
+          const previewCode = StreamCode.create(account.address, Number(currentBlock));
           streamcodeBox.style.display = 'block';
           streamcodeValue.textContent = previewCode;
         } catch (err) {
@@ -1077,7 +1072,6 @@
     });
 
     // Display config
-    const account = privateKeyToAccount(CONFIG.privateKey);
     document.getElementById('senderAddr').textContent = account.address;
     document.getElementById('destAddr').textContent = CONFIG.destAddress;
 
