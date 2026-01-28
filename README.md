@@ -10,6 +10,8 @@ Use streamcode: dvf10x0f18d1eae85b78b57f17b4a31a8f3099e6be644f50621047
 
 DVF (Discretized Video Format) is a simple binary protocol designed for streaming video data over unreliable, potentially out-of-order transport layers.
 
+Works both for streaming video and filesharing.
+
 ## Binary Packet Format
 
 All packets share a common 5-byte header: 
@@ -55,14 +57,14 @@ Contains JSON-encoded metadata about the stream.
 |-------------------|--------|------------------------------------------|
 | `mimeType`        | string | Media MIME type with codecs (e.g., `video/webm;codecs=vp8,opus`) |
 | `videoBitsPerSecond` | number | Video bitrate in bits per second      |
-| `startTime`       | number | Unix timestamp (ms) when stream started  |
+
+This can easily be extended to include a filename for filesharing.
 
 **Example JSON:**
 ```json
 {
   "mimeType": "video/webm;codecs=vp8,opus",
   "videoBitsPerSecond": 1500000,
-  "startTime":  1705849200000
 }
 ```
 
