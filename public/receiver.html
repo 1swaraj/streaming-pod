@@ -867,10 +867,28 @@
     // ============================================
     // Media Source Handling
     // ============================================
+    // MediaSource.isTypeSupported needs explicit codecs — a bare "video/webm"
+    // or "video/mp4" returns false. Resolve such mimes to a supported codec
+    // variant so progressive playback still works.
+    function pickSupportedMime(mime) {
+      if (typeof MediaSource === 'undefined') return null;
+      if (mime && MediaSource.isTypeSupported(mime)) return mime;
+      const variants = /webm/i.test(mime || '')
+        ? ['video/webm;codecs="vp9,opus"', 'video/webm;codecs="vp8,opus"', 'video/webm;codecs="vp9"', 'video/webm;codecs="vp8"']
+        : /mp4/i.test(mime || '')
+          ? ['video/mp4;codecs="avc1.42E01E,mp4a.40.2"', 'video/mp4;codecs="avc1.640028,mp4a.40.2"', 'video/mp4;codecs="avc1.42E01E"']
+          : [];
+      for (const v of variants) {
+        if (MediaSource.isTypeSupported(v)) return v;
+      }
+      return null;
+    }
+
     function initializeMediaSource() {
       if (!codecData || isInitialized) return;
 
-      if (!MediaSource.isTypeSupported(codecData.mimeType)) {
+      const sbMime = pickSupportedMime(codecData.mimeType);
+      if (!sbMime) {
         updateStatus(`Error: Codec not supported: ${codecData.mimeType}`, 'error');
         return;
       }
@@ -880,7 +898,7 @@
 
       mediaSource.addEventListener('sourceopen', () => {
         try {
-          sourceBuffer = mediaSource.addSourceBuffer(codecData.mimeType);
+          sourceBuffer = mediaSource.addSourceBuffer(sbMime);
           sourceBuffer.mode = 'sequence';
 
           sourceBuffer.addEventListener('updateend', () => {
@@ -1021,8 +1039,7 @@
           // a fragmented MP4 the uploader produced and flagged streamable. Plain
           // mp4/mov (no streamable flag) fall back to "download fully, then play
           // as a Blob". Live broadcasts are always WebM.
-          const canStream = (typeof MediaSource !== 'undefined') &&
-            MediaSource.isTypeSupported(mime) &&
+          const canStream = !!pickSupportedMime(mime) &&
             (codecData.streamable === true || /webm/i.test(mime));
           playbackMode = (codecData.fileName && !canStream) ? 'file' : 'live';
 

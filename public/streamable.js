@@ -52,9 +52,9 @@ export async function ensureStreamable(file, { log = () => {}, onProgress = () =
   try {
     log('Transcoding to WebM (plays through once, real time)…', 'pending');
     const webm = await transcodeToWebm(file, onProgress);
-    if (webm && webm.size > 0) {
-      log('Transcoded to WebM', 'confirmed');
-      return { blob: webm, mimeType: 'video/webm', fileName: stripExt(file.name) + '.webm', streamable: true };
+    if (webm && webm.blob && webm.blob.size > 0) {
+      log(`Transcoded to WebM (${webm.mimeType})`, 'confirmed');
+      return { blob: webm.blob, mimeType: webm.mimeType, fileName: stripExt(file.name) + '.webm', streamable: true };
     }
   } catch (err) {
     log(`Transcode failed (${err.message || err}); uploading original`, 'error');
@@ -214,7 +214,10 @@ async function transcodeToWebm(file, onProgress) {
 
     rec.stop();
     await recStopped;
-    return new Blob(chunks, { type: mime });
+    // Report the ACTUAL codec'd mime (e.g. video/webm;codecs="vp8,opus") — a
+    // bare "video/webm" is not accepted by MediaSource.isTypeSupported.
+    const actualMime = (rec.mimeType && /codecs/i.test(rec.mimeType)) ? rec.mimeType : mime;
+    return { blob: new Blob(chunks, { type: actualMime }), mimeType: actualMime };
   } finally {
     try { video.pause(); } catch {}
     try { audioCtx && audioCtx.close(); } catch {}
