@@ -1012,27 +1012,33 @@
       packetCount++;
 
       switch (packet.type) {
-        case DVFProtocol.TYPE_METADATA:
+        case DVFProtocol.TYPE_METADATA: {
           codecData = packet.metadata;
+          const mime = codecData.mimeType || '';
 
-          // Uploaded files carry a fileName: download fully, then play as a Blob
-          // (works for any format). Live broadcasts use progressive MediaSource.
-          playbackMode = codecData.fileName ? 'file' : 'live';
+          // Progressive playback (MediaSource) plays WHILE downloading, but only
+          // works for containers that are decodable from in-order byte slices —
+          // i.e. WebM. Plain mp4/mov need the whole file's index up front and
+          // aren't fragmented, so they fall back to "download fully, then play
+          // as a Blob". (We can't tell fragmented from plain mp4 by mime alone,
+          // so mp4 stays on the safe path.) Live broadcasts are always WebM.
+          const canStream = (typeof MediaSource !== 'undefined') &&
+            /webm/i.test(mime) && MediaSource.isTypeSupported(mime);
+          playbackMode = (codecData.fileName && !canStream) ? 'file' : 'live';
 
-          if (playbackMode === 'file') {
+          if (codecData.fileName) {
             codecInfo.innerHTML = `
               <strong>File:</strong> ${codecData.fileName}<br>
-              <strong>Type:</strong> ${codecData.mimeType || 'unknown'}${codecData.fileSize ? `<br><strong>Size:</strong> ${formatBytes(codecData.fileSize)}` : ''}
+              <strong>Type:</strong> ${mime || 'unknown'}${codecData.fileSize ? `<br><strong>Size:</strong> ${formatBytes(codecData.fileSize)}` : ''}${playbackMode === 'live' ? '<br><em>streaming while downloading…</em>' : ''}
             `;
-            bufferLabel.textContent = 'Download Progress';
           } else {
             codecInfo.innerHTML = `
-              <strong>MIME Type:</strong> ${codecData.mimeType}<br>
+              <strong>MIME Type:</strong> ${mime}<br>
               <strong>Video Bitrate:</strong> ${codecData.videoBitsPerSecond / 1000} kbps
             `;
-            bufferLabel.textContent = 'Playback Buffer';
           }
-          logBlock(`META: ${codecData.fileName || codecData.mimeType}`, 'packet');
+          bufferLabel.textContent = playbackMode === 'file' ? 'Download Progress' : 'Playback Buffer';
+          logBlock(`META: ${codecData.fileName || mime} (${playbackMode === 'live' ? 'progressive' : 'download-then-play'})`, 'packet');
 
           reassemblyBuffer.reset();
           isInitialized = false;
@@ -1046,6 +1052,7 @@
             updateStatus('Downloading file from blockchain…', 'waiting');
           }
           break;
+        }
 
         case DVFProtocol.TYPE_STREAM:
           totalStreamBytes += packet.data.byteLength;
