@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video over Blockchain — Monad</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 720px; margin: 0 auto; padding: 40px 20px;
+      background: #FFFFFF; color: #0E091C;
+    }
+    h1 { margin-bottom: 6px; }
+    h1 span {
+      font-size: 14px; background: #6E54FF; color: #FFFFFF; padding: 4px 8px;
+      border-radius: 4px; vertical-align: middle; margin-left: 10px;
+    }
+    .subtitle { color: #666; margin-bottom: 32px; }
+    .cards { display: grid; gap: 16px; }
+    a.card {
+      display: block; text-decoration: none; color: inherit;
+      border: 2px solid #6E54FF; border-radius: 12px; padding: 20px; background: #FBFAFF;
+      transition: all 0.15s;
+    }
+    a.card:hover { background: #F1EDFF; border-color: #FFAE45; }
+    a.card .title { font-size: 18px; font-weight: 600; color: #6E54FF; }
+    a.card .desc { font-size: 14px; color: #555; margin-top: 4px; }
+    .note { margin-top: 28px; font-size: 13px; color: #888; }
+  </style>
+</head>
+<body>
+  <h1>Video over Blockchain <span>Monad</span></h1>
+  <p class="subtitle">Store and replay video on the Monad chain. No server — everything runs in your browser.</p>
+
+  <div class="cards">
+    <a class="card" href="./public/uploader.html">
+      <div class="title">Upload a video →</div>
+      <div class="desc">Store a video file on-chain and get a stream code to share.</div>
+    </a>
+    <a class="card" href="./public/broadcaster.html">
+      <div class="title">Broadcast live →</div>
+      <div class="desc">Stream your camera live over Monad transactions.</div>
+    </a>
+    <a class="card" href="./public/receiver.html">
+      <div class="title">Watch a stream →</div>
+      <div class="desc">Paste a stream code to replay a video from the chain.</div>
+    </a>
+  </div>
+
+  <p class="note">Mainnet uses real MON; storing video as calldata is costly. Override the network with <code>localStorage.MONAD_CHAIN_ID</code> / <code>ETH_RPC_URL</code>.</p>
+</body>
+</html>

@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Video Broadcaster - Blockchain Transport</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       max-width: 900px;
@@ -16,10 +14,7 @@
       background: #FFFFFF;
       color: #0E091C;
     }
-    h1 {
-      color: #0E091C;
-      margin-bottom: 8px;
-    }
+    h1 { color: #0E091C; margin-bottom: 8px; }
     h1 span {
       font-size: 14px;
       background: #6E54FF;
@@ -29,211 +24,141 @@
       vertical-align: middle;
       margin-left: 10px;
     }
-    .subtitle {
-      color: #666;
-      font-size: 14px;
-      margin-bottom: 30px;
-    }
-    video {
-      width: 100%;
-      max-width: 100%;
-      background: #000;
-      border-radius: 8px;
-      margin: 10px 0;
-    }
-    .controls {
-      margin: 20px 0;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    button {
-      padding: 12px 24px;
-      font-size: 16px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    #previewBtn {
-      background: #85E6FF;
-      color: #0E091C;
-    }
-    #previewBtn:hover:not(:disabled) {
-      background: #6dd4ed;
-    }
-    #previewBtn.active {
-      background: #B9E3F9;
-      border: 2px solid #85E6FF;
-    }
-    #startBtn {
-      background: #6E54FF;
-      color: #FFFFFF;
-    }
-    #startBtn:hover:not(:disabled) {
-      background: #5a45d6;
-    }
-    #stopBtn {
-      background: #FFAE45;
-      color: #0E091C;
-    }
-    #stopBtn:hover:not(:disabled) {
-      background: #e69a3a;
-    }
-    .status {
-      padding: 12px 16px;
-      border-radius: 6px;
-      margin: 15px 0;
-      background: #F5F5F5;
-      font-size: 14px;
-    }
-    .status.connected {
-      border-left: 4px solid #00cc6a;
-      background: #f0fff4;
-    }
-    .status.error {
-      border-left: 4px solid #ff4757;
-      background: #fff5f5;
-    }
-    .config-box {
-      background: #F5F5F5;
-      padding: 15px;
-      border-radius: 6px;
-      font-family: monospace;
-      font-size: 12px;
-      margin: 15px 0;
-      word-break: break-all;
-    }
-    .config-box .label {
-      color: #666;
-      font-size: 10px;
-      text-transform: uppercase;
-      margin-bottom: 2px;
-    }
-    .config-box .value {
-      color: #6E54FF;
-      margin-bottom: 10px;
-    }
-    .config-box .value:last-child {
-      margin-bottom: 0;
-    }
-    .streamcode-box {
-      background: #FFFFFF;
-      padding: 15px;
-      border-radius: 6px;
-      margin: 15px 0;
-      border: 2px solid #6E54FF;
-    }
-    .streamcode-box .label {
-      color: #666;
-      font-size: 10px;
-      text-transform: uppercase;
-      margin-bottom: 5px;
-    }
-    .streamcode-box .value {
-      color: #0E091C;
-      font-family: monospace;
-      font-size: 14px;
-      word-break: break-all;
-      padding: 10px;
-      background: #F5F5F5;
-      border-radius: 4px;
-      cursor: pointer;
-      user-select: all;
-    }
-    .streamcode-box .value:hover {
-      background: #E8E8E8;
-    }
-    .streamcode-box .hint {
-      color: #666;
-      font-size: 11px;
-      margin-top: 5px;
-    }
+    .subtitle { color: #666; font-size: 14px; margin-bottom: 30px; }
+    video { width: 100%; max-width: 100%; background: #000; border-radius: 8px; margin: 10px 0; }
 
-    /* Stats bar - horizontal layout */
+    /* Wallet panel */
+    .wallet-panel {
+      border: 2px solid #6E54FF;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 10px 0 20px;
+      background: #FBFAFF;
+    }
+    .wallet-panel .row {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 6px 0;
+    }
+    .wallet-panel .kv { font-size: 13px; color: #666; }
+    .wallet-panel .kv b { color: #6E54FF; font-family: monospace; }
+    .wallet-panel .fund-controls {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px;
+    }
+    .wallet-panel input[type="text"] {
+      width: 120px; padding: 8px 10px; font-family: monospace; font-size: 14px;
+      border: 1px solid #ccc; border-radius: 6px;
+    }
+    .wallet-panel .warn { font-size: 12px; color: #b45309; margin-top: 10px; }
+    .reset-link { font-size: 12px; color: #6E54FF; cursor: pointer; text-decoration: underline; }
+
+    .controls { margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap; }
+    button {
+      padding: 12px 24px; font-size: 16px; border: none; border-radius: 6px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #previewBtn { background: #85E6FF; color: #0E091C; }
+    #previewBtn:hover:not(:disabled) { background: #6dd4ed; }
+    #previewBtn.active { background: #B9E3F9; border: 2px solid #85E6FF; }
+    #startBtn, #connectBtn { background: #6E54FF; color: #FFFFFF; }
+    #startBtn:hover:not(:disabled), #connectBtn:hover:not(:disabled) { background: #5a45d6; }
+    #fundBtn { background: #85E6FF; color: #0E091C; }
+    #fundBtn:hover:not(:disabled) { background: #6dd4ed; }
+    #stopBtn { background: #FFAE45; color: #0E091C; }
+    #stopBtn:hover:not(:disabled) { background: #e69a3a; }
+    .status { padding: 12px 16px; border-radius: 6px; margin: 15px 0; background: #F5F5F5; font-size: 14px; }
+    .status.connected { border-left: 4px solid #00cc6a; background: #f0fff4; }
+    .status.error { border-left: 4px solid #ff4757; background: #fff5f5; }
+    .config-box {
+      background: #F5F5F5; padding: 15px; border-radius: 6px; font-family: monospace;
+      font-size: 12px; margin: 15px 0; word-break: break-all;
+    }
+    .config-box .label { color: #666; font-size: 10px; text-transform: uppercase; margin-bottom: 2px; }
+    .config-box .value { color: #6E54FF; margin-bottom: 10px; }
+    .config-box .value:last-child { margin-bottom: 0; }
+    .streamcode-box {
+      background: #FFFFFF; padding: 15px; border-radius: 6px; margin: 15px 0; border: 2px solid #6E54FF;
+    }
+    .streamcode-box .label { color: #666; font-size: 10px; text-transform: uppercase; margin-bottom: 5px; }
+    .streamcode-box .value {
+      color: #0E091C; font-family: monospace; font-size: 14px; word-break: break-all;
+      padding: 10px; background: #F5F5F5; border-radius: 4px; cursor: pointer; user-select: all;
+    }
+    .streamcode-box .value:hover { background: #E8E8E8; }
+    .streamcode-box a.watch {
+      display: inline-block; margin-top: 10px; padding: 8px 16px; background: #85E6FF;
+      color: #0E091C; border-radius: 6px; text-decoration: none; font-size: 14px;
+    }
+    .streamcode-box a.watch:hover { background: #6dd4ed; }
     .stats-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin: 15px 0;
-      padding: 12px;
-      background: #F5F5F5;
-      border-radius: 6px;
+      display: flex; flex-wrap: wrap; gap: 8px; margin: 15px 0; padding: 12px;
+      background: #F5F5F5; border-radius: 6px;
     }
     .stat-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      background: #FFFFFF;
-      border-radius: 4px;
-      font-size: 13px;
+      display: flex; align-items: center; gap: 6px; padding: 4px 10px;
+      background: #FFFFFF; border-radius: 4px; font-size: 13px;
     }
-    .stat-item .label {
-      color: #666;
-    }
-    .stat-item .value {
-      font-weight: 600;
-      color: #6E54FF;
-      font-family: monospace;
-    }
-
+    .stat-item .label { color: #666; }
+    .stat-item .value { font-weight: 600; color: #6E54FF; font-family: monospace; }
     .codec-info {
-      background: #F5F5F5;
-      padding: 12px 16px;
-      border-radius: 6px;
-      font-family: monospace;
-      font-size: 13px;
-      word-break: break-all;
-      margin: 15px 0;
-      color: #0E091C;
+      background: #F5F5F5; padding: 12px 16px; border-radius: 6px; font-family: monospace;
+      font-size: 13px; word-break: break-all; margin: 15px 0; color: #0E091C;
     }
     .tx-log {
-      background: #0E091C;
-      padding: 12px 16px;
-      border-radius: 6px;
-      font-family: monospace;
-      font-size: 11px;
-      margin-top: 15px;
-      max-height: 180px;
-      overflow-y: auto;
-      color: #ccc;
+      background: #0E091C; padding: 12px 16px; border-radius: 6px; font-family: monospace;
+      font-size: 11px; margin-top: 15px; max-height: 180px; overflow-y: auto; color: #ccc;
     }
-    .tx-log div {
-      margin: 2px 0;
-      padding: 2px 0;
-      border-bottom: 1px solid #1a1a2e;
-    }
-    .tx-log .pending {
-      color: #FFAE45;
-    }
-    .tx-log .confirmed {
-      color: #00cc6a;
-    }
-    .tx-log .retry {
-      color: #FF8EE4;
-    }
-    .tx-log .error {
-      color: #ff4757;
-    }
+    .tx-log div { margin: 2px 0; padding: 2px 0; border-bottom: 1px solid #1a1a2e; }
+    .tx-log .pending { color: #FFAE45; }
+    .tx-log .confirmed { color: #00cc6a; }
+    .tx-log .retry { color: #FF8EE4; }
+    .tx-log .error { color: #ff4757; }
   </style>
 </head>
 <body>
-  <h1>Video Sender <span>Blockchain</span></h1>
-  <p class="subtitle">Broadcast video via blockchain transactions</p>
+  <h1>Video Broadcaster <span>Blockchain</span></h1>
+  <p class="subtitle">Broadcast your camera live over Monad transactions.</p>
+
+  <!-- Wallet / session key -->
+  <div class="wallet-panel" id="walletPanel">
+    <div class="row">
+      <span class="kv">Network: <b id="chainId">-</b></span>
+      <span class="kv">Session key (streamer): <b id="sessionAddr">-</b></span>
+      <span class="reset-link" id="copyKeyLink">copy</span>
+      <a class="reset-link" id="explorerLink" href="#" target="_blank" rel="noopener">explorer</a>
+      <span class="reset-link" id="resetKeyLink">new key</span>
+    </div>
+    <div class="row">
+      <span class="kv">Session balance: <b id="sessionBalance">-</b></span>
+      <span class="reset-link" id="refreshLink">refresh</span>
+    </div>
+
+    <div class="warn">
+      ⚠ Mainnet — real MON. Live video is one transaction per ~0.5s chunk, so broadcasting burns funds fast. The session key is a hot key in this browser's localStorage; only fund what you'll spend.
+    </div>
+
+    <div class="fund-controls">
+      <button id="connectBtn">Connect wallet</button>
+      <input type="text" id="fundAmount" value="0.05" />
+      <span class="reset-link" id="maxFundLink">max</span>
+      <button id="fundBtn" disabled>Fund (1 prompt)</button>
+    </div>
+    <div class="row">
+      <span class="kv" id="fundHint">Connect a wallet to fund in one prompt — or send MON to the session address from any wallet, then click refresh.</span>
+    </div>
+    <div class="row" id="funderRow" style="display:none;">
+      <span class="kv">Wallet: <b id="funderAddr">-</b></span>
+      <span class="kv">Wallet balance: <b id="funderBalance">-</b></span>
+    </div>
+  </div>
 
   <div class="streamcode-box" id="streamcodeBox" style="display: none;">
     <div class="label">Stream Code (share this!)</div>
     <div class="value" id="streamcodeValue">-</div>
-    <div class="hint">Click to select, then copy. Share with receiver to watch your stream.</div>
+    <a class="watch" id="watchLink" href="#" target="_blank" rel="noopener">Watch in receiver →</a>
   </div>
 
   <div class="status" id="status">
-    Click "Preview Camera" to check your framing before streaming.
+    Fund the session key, then click "Preview Camera".
   </div>
 
   <video id="preview" autoplay muted playsinline></video>
@@ -244,376 +169,32 @@
     <button id="stopBtn" disabled>Stop Streaming</button>
   </div>
 
-  <div class="codec-info" id="codecInfo">
-    Codec information will appear here...
-  </div>
+  <div class="codec-info" id="codecInfo">Codec information will appear here...</div>
 
   <div class="stats-bar">
-    <div class="stat-item">
-      <span class="label">Packets:</span>
-      <span class="value" id="packetCount">0</span>
-    </div>
-    <div class="stat-item">
-      <span class="label">TX Pending:</span>
-      <span class="value" id="txPending">0</span>
-    </div>
-    <div class="stat-item">
-      <span class="label">TX Confirmed:</span>
-      <span class="value" id="txConfirmed">0</span>
-    </div>
-    <div class="stat-item">
-      <span class="label">Retries:</span>
-      <span class="value" id="txRetries">0</span>
-    </div>
-    <div class="stat-item">
-      <span class="label">Stream:</span>
-      <span class="value" id="streamPos">0 KB</span>
-    </div>
-    <div class="stat-item">
-      <span class="label">Gas Spent:</span>
-      <span class="value" id="gasSpent">0 MON</span>
-    </div>
+    <div class="stat-item"><span class="label">Packets:</span><span class="value" id="packetCount">0</span></div>
+    <div class="stat-item"><span class="label">TX Pending:</span><span class="value" id="txPending">0</span></div>
+    <div class="stat-item"><span class="label">TX Confirmed:</span><span class="value" id="txConfirmed">0</span></div>
+    <div class="stat-item"><span class="label">Retries:</span><span class="value" id="txRetries">0</span></div>
+    <div class="stat-item"><span class="label">Stream:</span><span class="value" id="streamPos">0 KB</span></div>
+    <div class="stat-item"><span class="label">Gas Spent:</span><span class="value" id="gasSpent">0 MON</span></div>
   </div>
 
-  <div class="tx-log" id="txLog">
-    <div>Transaction log will appear here...</div>
-  </div>
+  <div class="tx-log" id="txLog"><div>Transaction log will appear here...</div></div>
 
   <div class="config-box">
-    <div class="label">Sender Address</div>
-    <div class="value" id="senderAddr">0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc</div>
+    <div class="label">Streamer (session) Address</div>
+    <div class="value" id="senderAddr">-</div>
     <div class="label">Destination Address</div>
-    <div class="value" id="destAddr">0x6476660100000000000000000000000000000000</div>
+    <div class="value" id="destAddr">-</div>
   </div>
 
   <script type="module">
-    import {
-      createWalletClient,
-      createPublicClient,
-      http,
-      defineChain,
-      toHex,
-      parseGwei
-    } from 'https://esm.sh/viem';
-    import { privateKeyToAccount } from 'https://esm.sh/viem/accounts';
+    import { WalletSession, DEST_ADDRESS, formatEther, parseEther } from './dvf-wallet.js';
     import { DVFProtocol, StreamCode } from './dist/index.js';
 
-    // ============================================
-    // Configuration
-    // ============================================
-    const CONFIG = {
-      privateKey: '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a',
-      rpcUrl: 'http://127.0.0.1:8545',
-      destAddress: '0x6476660100000000000000000000000000000000',
-
-      // Gas settings (hardcoded for testnet)
-      maxFeePerGas: parseGwei('120'),
-      basePriorityFee: parseGwei('1'),
-      priorityFeeIncrement: parseGwei('0.1'),
-      gasLimit: 30_000_000n, // High limit for large calldata
-
-      // Retry settings
-      confirmationTimeout: 3000, // 3 seconds before retry
-      maxRetries: 10
-    };
-    if(localStorage['ETH_RPC_URL']!=null){
-      CONFIG['rpcUrl'] = localStorage['ETH_RPC_URL']
-    }
-
-
-    // Define a generic local chain
-    const localChain = defineChain({
-      id: 20143, // Default Hardhat/Anvil chain ID
-      name: 'Localhost',
-      nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-      rpcUrls: {
-        default: { http: [CONFIG.rpcUrl] }
-      }
-    });
-
-    // Module-level public client for fetching current block
-    const publicClient = createPublicClient({
-      chain: localChain,
-      transport: http(CONFIG.rpcUrl)
-    });
-
-    // Module-level account derived from private key
-    const account = privateKeyToAccount(CONFIG.privateKey);
-
-    // ============================================
-    // Packet State Machine
-    // ============================================
-    const PacketState = {
-      SENDING: 'SENDING',
-      PENDING: 'PENDING',
-      CONFIRMED: 'CONFIRMED',
-      FAILED: 'FAILED'
-    };
-
-    class PacketStateMachine {
-      constructor(nonce, packetData, config, callbacks, isFirst = false, isEnd = false) {
-        this.nonce = nonce;
-        this.packetData = packetData;
-        this.config = config;
-        this.callbacks = callbacks;  // { onConfirmed, onFailed }
-        this.isFirst = isFirst;
-        this.isEnd = isEnd;
-
-        this.state = PacketState.SENDING;
-        this.txHashes = [];          // Track ALL tx hashes (original + replacements)
-        this.currentTxHash = null;
-        this.priorityFee = config.basePriorityFee;
-        this.retryCount = 0;
-        this.lastSendTime = null;
-      }
-
-      _transitionTo(newState) {
-        const oldState = this.state;
-        this.state = newState;
-        logTx(`TX nonce=${this.nonce}: ${oldState} -> ${newState}`,
-          newState === PacketState.CONFIRMED ? 'confirmed' :
-          newState === PacketState.FAILED ? 'error' : 'pending');
-      }
-
-      async start(walletClient) {
-        await this._broadcast(walletClient);
-      }
-
-      async _broadcast(walletClient) {
-        try {
-          const hexData = toHex(this.packetData);
-
-          const txHash = await walletClient.sendTransaction({
-            to: this.config.destAddress,
-            data: hexData,
-            nonce: this.nonce,
-            maxFeePerGas: this.config.maxFeePerGas,
-            maxPriorityFeePerGas: this.priorityFee,
-            gas: this.config.gasLimit
-          });
-
-          this.txHashes.push(txHash);
-          this.currentTxHash = txHash;
-          this.lastSendTime = Date.now();
-
-          const retryLabel = this.retryCount > 0 ? ` (retry #${this.retryCount})` : '';
-          logTx(`TX nonce=${this.nonce}${retryLabel}: ${txHash.slice(0, 18)}...`, 'pending');
-
-          this._transitionTo(PacketState.PENDING);
-
-        } catch (err) {
-          logTx(`TX nonce=${this.nonce} ERROR: ${err.message}`, 'error');
-          console.error('Transaction error:', err);
-
-          if (err.message.includes('nonce too low')) {
-            // TX might already be confirmed via another hash
-            this._transitionTo(PacketState.CONFIRMED);
-            this.callbacks.onConfirmed(null);
-          } else {
-            this._transitionTo(PacketState.FAILED);
-            this.callbacks.onFailed(err);
-          }
-        }
-      }
-
-      async _checkReceipt(publicClient, hash) {
-        try {
-          return await publicClient.getTransactionReceipt({ hash });
-        } catch {
-          return null;
-        }
-      }
-
-      _isTimedOut() {
-        if (!this.lastSendTime) return false;
-        return Date.now() - this.lastSendTime > this.config.confirmationTimeout;
-      }
-
-      _bumpPriorityFee() {
-        this.priorityFee = this.priorityFee + this.config.priorityFeeIncrement;
-        this.retryCount++;
-      }
-
-      isTerminal() {
-        return this.state === PacketState.CONFIRMED || this.state === PacketState.FAILED;
-      }
-
-      async tick(publicClient, walletClient) {
-        switch (this.state) {
-          case PacketState.SENDING:
-            // Waiting for broadcast to complete - nothing to do
-            break;
-
-          case PacketState.PENDING:
-            // Check ALL tx hashes for confirmation (handles race conditions)
-            for (const hash of this.txHashes) {
-              const receipt = await this._checkReceipt(publicClient, hash);
-              if (receipt) {
-                this._transitionTo(PacketState.CONFIRMED);
-                logTx(`TX nonce=${this.nonce} CONFIRMED in block ${receipt.blockNumber}`, 'confirmed');
-                this.callbacks.onConfirmed(receipt);
-                return;
-              }
-            }
-
-            // Check for timeout (only if no TX confirmed)
-            if (this._isTimedOut()) {
-              if (this.retryCount >= this.config.maxRetries) {
-                this._transitionTo(PacketState.FAILED);
-                logTx(`TX nonce=${this.nonce} MAX RETRIES reached`, 'error');
-                this.callbacks.onFailed(new Error('Max retries exceeded'));
-              } else {
-                logTx(`TX nonce=${this.nonce} RETRY with priority ${Number(this.priorityFee + this.config.priorityFeeIncrement) / 1e9} gwei`, 'retry');
-                this._bumpPriorityFee();
-                this._transitionTo(PacketState.SENDING);
-                await this._broadcast(walletClient);
-              }
-            }
-            break;
-
-          case PacketState.CONFIRMED:
-          case PacketState.FAILED:
-            // Terminal states - nothing to do
-            break;
-        }
-      }
-    }
-
-    // ============================================
-    // Blockchain Transport (State Machine Manager)
-    // ============================================
-    class BlockchainTransport {
-      constructor(config, publicClient, account, onFirstConfirmation, onEndConfirmation, onStatsUpdate) {
-        this.config = config;
-        this.publicClient = publicClient;
-        this.account = account;
-        this.onFirstConfirmation = onFirstConfirmation;
-        this.onEndConfirmation = onEndConfirmation;
-        this.onStatsUpdate = onStatsUpdate;
-
-        this.walletClient = createWalletClient({
-          account: this.account,
-          chain: localChain,
-          transport: http(config.rpcUrl)
-        });
-
-        // Nonce management
-        this.currentNonce = null;
-        this.nonceInitialized = false;
-
-        // Packet state machines: nonce -> PacketStateMachine
-        this.packets = new Map();
-
-        // Stats
-        this.totalRetries = 0;
-        this.totalGasSpent = 0n;
-
-        // Track first confirmation
-        this.firstConfirmed = false;
-
-        // Start tick loop
-        this.tickInterval = setInterval(() => this._tick(), 1000);
-      }
-
-      async initialize() {
-        this.currentNonce = await this.publicClient.getTransactionCount({
-          address: this.account.address
-        });
-        this.nonceInitialized = true;
-        logTx(`Initialized nonce: ${this.currentNonce}`, 'confirmed');
-      }
-
-      _handleConfirmed(machine, receipt) {
-        // Track gas spent
-        if (receipt) {
-          this.totalGasSpent += receipt.gasUsed * receipt.effectiveGasPrice;
-        }
-
-        // Track retries
-        this.totalRetries += machine.retryCount;
-
-        this.onStatsUpdate();
-
-        // Check if this is the first confirmation
-        if (machine.isFirst && !this.firstConfirmed) {
-          this.firstConfirmed = true;
-          if (this.onFirstConfirmation && receipt) {
-            this.onFirstConfirmation(receipt.blockNumber);
-          }
-        }
-
-        // Check if this is the end packet confirmation
-        if (machine.isEnd && this.onEndConfirmation && receipt) {
-          this.onEndConfirmation(receipt.blockNumber);
-        }
-      }
-
-      _handleFailed(machine, error) {
-        this.totalRetries += machine.retryCount;
-        this.onStatsUpdate();
-        console.error(`Packet nonce=${machine.nonce} failed:`, error);
-      }
-
-      async send(packetData, isFirst = false, isEnd = false) {
-        if (!this.nonceInitialized) {
-          await this.initialize();
-        }
-
-        const nonce = this.currentNonce;
-        this.currentNonce++;
-
-        const machine = new PacketStateMachine(nonce, packetData, this.config, {
-          onConfirmed: (receipt) => this._handleConfirmed(machine, receipt),
-          onFailed: (error) => this._handleFailed(machine, error)
-        }, isFirst, isEnd);
-
-        this.packets.set(nonce, machine);
-        this.onStatsUpdate();
-
-        await machine.start(this.walletClient);
-      }
-
-      async _tick() {
-        for (const machine of this.packets.values()) {
-          if (!machine.isTerminal()) {
-            await machine.tick(this.publicClient, this.walletClient);
-          }
-        }
-        this.onStatsUpdate();
-      }
-
-      getPendingCount() {
-        return [...this.packets.values()].filter(m =>
-          m.state === PacketState.SENDING || m.state === PacketState.PENDING
-        ).length;
-      }
-
-      getConfirmedCount() {
-        return [...this.packets.values()].filter(m =>
-          m.state === PacketState.CONFIRMED
-        ).length;
-      }
-
-      getRetryCount() {
-        return this.totalRetries;
-      }
-
-      getCurrentNonce() {
-        return this.currentNonce;
-      }
-
-      getTotalGasSpent() {
-        return this.totalGasSpent;
-      }
-
-      getSenderAddress() {
-        return this.account.address;
-      }
-
-      close() {
-        clearInterval(this.tickInterval);
-      }
-    }
+    // Video settings (blockchain settings live in the shared WalletSession).
+    const VIDEO = { videoBitsPerSecond: 1500000, chunkMs: 500 };
 
     // ============================================
     // DOM Elements
@@ -633,6 +214,24 @@
     const gasSpentEl = document.getElementById('gasSpent');
     const streamcodeBox = document.getElementById('streamcodeBox');
     const streamcodeValue = document.getElementById('streamcodeValue');
+    const watchLink = document.getElementById('watchLink');
+
+    // Wallet panel
+    const connectBtn = document.getElementById('connectBtn');
+    const funderRow = document.getElementById('funderRow');
+    const funderAddrEl = document.getElementById('funderAddr');
+    const funderBalanceEl = document.getElementById('funderBalance');
+    const chainIdEl = document.getElementById('chainId');
+    const sessionAddrEl = document.getElementById('sessionAddr');
+    const sessionBalanceEl = document.getElementById('sessionBalance');
+    const copyKeyLink = document.getElementById('copyKeyLink');
+    const explorerLink = document.getElementById('explorerLink');
+    const refreshLink = document.getElementById('refreshLink');
+    const resetKeyLink = document.getElementById('resetKeyLink');
+    const fundAmount = document.getElementById('fundAmount');
+    const maxFundLink = document.getElementById('maxFundLink');
+    const fundBtn = document.getElementById('fundBtn');
+    const fundHint = document.getElementById('fundHint');
 
     // ============================================
     // UI Helpers
@@ -642,9 +241,7 @@
       div.textContent = `${new Date().toISOString().substr(11, 12)} ${message}`;
       if (className) div.className = className;
       txLogEl.insertBefore(div, txLogEl.firstChild);
-      if (txLogEl.children.length > 100) {
-        txLogEl.removeChild(txLogEl.lastChild);
-      }
+      if (txLogEl.children.length > 100) txLogEl.removeChild(txLogEl.lastChild);
     }
 
     function formatBytes(bytes) {
@@ -653,31 +250,103 @@
       return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
     }
 
+    function shortAddr(a) { return a ? `${a.slice(0, 6)}…${a.slice(-4)}` : '-'; }
+
     function getSupportedMimeType() {
       const types = [
-        'video/webm;codecs=vp9,opus',
-        'video/webm;codecs=vp8,opus',
-        'video/webm;codecs=vp9',
-        'video/webm;codecs=vp8',
-        'video/webm'
+        'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus',
+        'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'
       ];
       for (const type of types) {
-        if (MediaRecorder.isTypeSupported(type)) {
-          return type;
-        }
+        if (MediaRecorder.isTypeSupported(type)) return type;
       }
       return 'video/webm';
     }
 
     // ============================================
+    // Session (shared wallet/transport logic)
+    // ============================================
+    const session = new WalletSession({ log: logTx });
+
+    function showSessionAddress() {
+      sessionAddrEl.textContent = shortAddr(session.sessionAddress);
+      sessionAddrEl.title = session.sessionAddress;
+      document.getElementById('senderAddr').textContent = session.sessionAddress;
+      explorerLink.href = `${session.target.explorer}/address/${session.sessionAddress}`;
+    }
+
+    function refreshSessionUI() {
+      sessionBalanceEl.textContent = `${formatEther(session.sessionBalance)} ${session.symbol}`;
+      if (session.funderAddress) funderBalanceEl.textContent = `${formatEther(session.funderBalance)} ${session.symbol}`;
+      streamingMachine && streamingMachine._updateUI();
+    }
+
+    async function refreshBalance() {
+      try { await session.refreshBalance(); } catch (e) { console.error(e); }
+      refreshSessionUI();
+    }
+
+    function initSession() {
+      session.init();
+      chainIdEl.textContent = `${session.target.id} (${session.target.name})`;
+      showSessionAddress();
+      document.getElementById('destAddr').textContent = DEST_ADDRESS;
+      logTx(`Session key: ${session.sessionAddress}`, 'confirmed');
+      session.refreshFees().then(refreshBalance);
+    }
+
+    async function connectWallet() {
+      try {
+        connectBtn.disabled = true;
+        const addr = await session.connect();
+        connectBtn.textContent = 'Wallet connected';
+        funderRow.style.display = 'flex';
+        funderAddrEl.textContent = shortAddr(addr);
+        fundBtn.disabled = false;
+        logTx(`Connected ${shortAddr(addr)} on ${session.target.name}`, 'confirmed');
+        await refreshBalance();
+      } catch (err) {
+        console.error('Connect failed:', err);
+        updateStatus('Wallet connect failed: ' + (err.shortMessage || err.message) + ' — or send MON to the session address and click refresh.', 'error');
+        connectBtn.disabled = false;
+      }
+    }
+
+    async function fundSession() {
+      if (!session.funderWalletClient) {
+        updateStatus('Connect a wallet for one-click funding, or send MON to the session address and click refresh.', 'error');
+        return;
+      }
+      try {
+        fundBtn.disabled = true;
+        fundHint.textContent = 'Confirm the funding transaction in your wallet…';
+        const hash = await session.fund(fundAmount.value);
+        logTx(`Funding TX: ${hash.slice(0, 18)}…`, 'pending');
+        fundHint.textContent = 'Funded. The session key now pays its own gas.';
+        refreshSessionUI();
+      } catch (err) {
+        console.error('Funding failed:', err);
+        fundHint.textContent = '';
+        updateStatus('Funding failed: ' + (err.shortMessage || err.message), 'error');
+      } finally {
+        fundBtn.disabled = !session.funderWalletClient;
+      }
+    }
+
+    function resetSessionKey() {
+      if (streamingMachine && streamingMachine.state === StreamState.STREAMING) return;
+      session.resetKey();
+      showSessionAddress();
+      logTx(`New session key: ${session.sessionAddress}`, 'confirmed');
+      refreshBalance();
+    }
+
+    function setMaxFund() { fundAmount.value = formatEther(session.maxFundable()); }
+
+    // ============================================
     // Video Activation State Machine
     // ============================================
-    const VideoState = {
-      OFF: 'OFF',
-      ACTIVATING: 'ACTIVATING',
-      PREVIEWING: 'PREVIEWING',
-      ERROR: 'ERROR'
-    };
+    const VideoState = { OFF: 'OFF', ACTIVATING: 'ACTIVATING', PREVIEWING: 'PREVIEWING', ERROR: 'ERROR' };
 
     class VideoActivationMachine {
       constructor() {
@@ -694,26 +363,22 @@
       }
 
       _updateUI() {
-        // Preview button state
-        const canPreview = this.state === VideoState.OFF || this.state === VideoState.ERROR;
         const isPreviewing = this.state === VideoState.PREVIEWING;
-
         previewBtn.disabled = this.state === VideoState.ACTIVATING;
         previewBtn.textContent = isPreviewing ? 'Stop Preview' : 'Preview Camera';
         previewBtn.classList.toggle('active', isPreviewing);
 
-        // Start button only enabled when previewing and not streaming
         startBtn.disabled = this.state !== VideoState.PREVIEWING ||
+          !session.isReady() ||
           (streamingMachine && streamingMachine.state !== StreamState.IDLE &&
            streamingMachine.state !== StreamState.STOPPED &&
            streamingMachine.state !== StreamState.ERROR);
 
-        // Status message for video states (only if not streaming)
         if (!streamingMachine || streamingMachine.state === StreamState.IDLE) {
           const statusConfig = {
-            [VideoState.OFF]: { message: 'Click "Preview Camera" to check your framing before streaming.', type: '' },
+            [VideoState.OFF]: { message: session.isReady() ? 'Camera off. Click "Preview Camera".' : 'Fund the session key, then click "Preview Camera".', type: '' },
             [VideoState.ACTIVATING]: { message: 'Activating camera...', type: '' },
-            [VideoState.PREVIEWING]: { message: 'Camera preview active. Click "Start Streaming" when ready.', type: 'connected' },
+            [VideoState.PREVIEWING]: { message: session.isReady() ? 'Camera preview active. Click "Start Streaming".' : 'Camera on — fund the session key to enable streaming.', type: 'connected' },
             [VideoState.ERROR]: { message: `Camera error: ${this.lastError?.message || 'Unknown error'}`, type: 'error' }
           };
           const { message, type } = statusConfig[this.state];
@@ -723,20 +388,13 @@
       }
 
       async toggle() {
-        if (this.state === VideoState.OFF || this.state === VideoState.ERROR) {
-          await this.activate();
-        } else if (this.state === VideoState.PREVIEWING) {
-          this.deactivate();
-        }
+        if (this.state === VideoState.OFF || this.state === VideoState.ERROR) await this.activate();
+        else if (this.state === VideoState.PREVIEWING) this.deactivate();
       }
 
       async activate() {
-        if (this.state !== VideoState.OFF && this.state !== VideoState.ERROR) {
-          return;
-        }
-
+        if (this.state !== VideoState.OFF && this.state !== VideoState.ERROR) return;
         this._transitionTo(VideoState.ACTIVATING);
-
         try {
           this.mediaStream = await navigator.mediaDevices.getUserMedia({
             video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
@@ -752,10 +410,7 @@
       }
 
       deactivate() {
-        if (this.state !== VideoState.PREVIEWING) {
-          return;
-        }
-
+        if (this.state !== VideoState.PREVIEWING) return;
         if (this.mediaStream) {
           this.mediaStream.getTracks().forEach(track => track.stop());
           this.mediaStream = null;
@@ -764,48 +419,32 @@
         this._transitionTo(VideoState.OFF);
       }
 
-      getMediaStream() {
-        return this.mediaStream;
-      }
-
-      isActive() {
-        return this.state === VideoState.PREVIEWING;
-      }
+      getMediaStream() { return this.mediaStream; }
+      isActive() { return this.state === VideoState.PREVIEWING; }
     }
 
     // ============================================
     // Streaming State Machine
     // ============================================
     const StreamState = {
-      IDLE: 'IDLE',
-      INITIALIZING: 'INITIALIZING',
-      STREAMING: 'STREAMING',
-      STOPPING: 'STOPPING',
-      STOPPED: 'STOPPED',
-      ERROR: 'ERROR'
+      IDLE: 'IDLE', INITIALIZING: 'INITIALIZING', STREAMING: 'STREAMING',
+      STOPPING: 'STOPPING', STOPPED: 'STOPPED', ERROR: 'ERROR'
     };
 
     class StreamingStateMachine {
-      constructor(config, videoMachine) {
-        this.config = config;
+      constructor(videoMachine) {
         this.videoMachine = videoMachine;
         this.state = StreamState.IDLE;
-
-        // Resources (owned by state machine)
         this.transport = null;
         this.mediaRecorder = null;
-
-        // Stream data
         this.packetCount = 0;
         this.streamPosition = 0;
         this.startBlock = null;
         this.pendingChunkSends = 0;
-
-        // Stats update interval
         this.statsInterval = null;
+        this.lastError = null;
       }
 
-      // State transition with logging
       _transitionTo(newState) {
         const oldState = this.state;
         this.state = newState;
@@ -813,33 +452,29 @@
         this._updateUI();
       }
 
-      // Derive UI from current state
       _updateUI() {
-        // Button states
         const canStart = (this.state === StreamState.IDLE || this.state === StreamState.STOPPED || this.state === StreamState.ERROR)
-          && this.videoMachine.isActive();
+          && this.videoMachine.isActive() && session.isReady();
         const canStop = this.state === StreamState.STREAMING;
         startBtn.disabled = !canStart;
         stopBtn.disabled = !canStop;
-
-        // Preview button disabled while streaming
         previewBtn.disabled = this.state === StreamState.STREAMING || this.state === StreamState.STOPPING;
+        if (fundBtn) fundBtn.disabled = !session.funderWalletClient || this.state === StreamState.STREAMING;
 
-        // Status message and style
+        const idleMsg = !session.isReady()
+          ? 'Fund the session key to enable streaming.'
+          : (this.videoMachine.isActive() ? 'Camera preview active. Click "Start Streaming".' : 'Click "Preview Camera".');
         const statusConfig = {
-          [StreamState.IDLE]: { message: this.videoMachine.isActive() ? 'Camera preview active. Click "Start Streaming" when ready.' : 'Click "Preview Camera" to check your framing before streaming.', type: this.videoMachine.isActive() ? 'connected' : '' },
+          [StreamState.IDLE]: { message: idleMsg, type: this.videoMachine.isActive() && session.isReady() ? 'connected' : '' },
           [StreamState.INITIALIZING]: { message: 'Initializing blockchain connection...', type: '' },
           [StreamState.STREAMING]: { message: 'Streaming to blockchain...', type: 'connected' },
           [StreamState.STOPPING]: { message: 'Stopping stream, sending final packet...', type: '' },
           [StreamState.STOPPED]: { message: 'Streaming stopped. Waiting for confirmations...', type: '' },
           [StreamState.ERROR]: { message: `Error: ${this.lastError?.message || 'Unknown error'}`, type: 'error' }
         };
-
         const { message, type } = statusConfig[this.state];
         statusEl.textContent = message;
         statusEl.className = 'status ' + type;
-
-        // Update stats display
         this._updateStats();
       }
 
@@ -849,109 +484,89 @@
         txConfirmedEl.textContent = this.transport ? this.transport.getConfirmedCount() : 0;
         txRetriesEl.textContent = this.transport ? this.transport.getRetryCount() : 0;
         streamPosEl.textContent = formatBytes(this.streamPosition);
-
         if (this.transport) {
-          const gasWei = this.transport.getTotalGasSpent();
-          const gasMon = Number(gasWei) / 1e18;
-          gasSpentEl.textContent = gasMon.toFixed(1) + ' MON';
+          const gas = Number(this.transport.getTotalGasSpent()) / 1e18;
+          gasSpentEl.textContent = gas.toFixed(4) + ' ' + session.symbol;
         } else {
-          gasSpentEl.textContent = '0 MON';
+          gasSpentEl.textContent = '0 ' + session.symbol;
         }
       }
 
       _updateStreamCode(code) {
         streamcodeBox.style.display = 'block';
         streamcodeValue.textContent = code;
+        watchLink.href = `./receiver.html#${code}`;
       }
 
       _onFirstConfirmation(blockNumber) {
         this.startBlock = Number(blockNumber);
-        const senderAddress = this.transport.getSenderAddress();
-        const code = StreamCode.create(senderAddress, this.startBlock);
+        const code = StreamCode.create(this.transport.getSenderAddress(), this.startBlock);
         this._updateStreamCode(code);
         logTx(`Stream code created: ${code}`, 'confirmed');
       }
 
       _onEndConfirmation(blockNumber) {
         const endBlock = Number(blockNumber);
-        const senderAddress = this.transport.getSenderAddress();
-        const code = StreamCode.createWithEnd(senderAddress, this.startBlock, endBlock);
+        const code = StreamCode.createWithEnd(this.transport.getSenderAddress(), this.startBlock, endBlock);
         this._updateStreamCode(code);
         logTx(`Stream code finalized: ${code}`, 'confirmed');
       }
 
-      // Actions that trigger state transitions
       async start() {
-        if (this.state !== StreamState.IDLE && this.state !== StreamState.STOPPED && this.state !== StreamState.ERROR) {
-          return; // Invalid transition
-        }
-
+        if (this.state !== StreamState.IDLE && this.state !== StreamState.STOPPED && this.state !== StreamState.ERROR) return;
         if (!this.videoMachine.isActive()) {
           this.lastError = new Error('Camera not active. Start preview first.');
           this._transitionTo(StreamState.ERROR);
           return;
         }
+        if (!session.isReady()) {
+          this.lastError = new Error('Fund the session key first.');
+          this._transitionTo(StreamState.ERROR);
+          return;
+        }
 
         this._transitionTo(StreamState.INITIALIZING);
-
         try {
-          // Reset stream data
           this.packetCount = 0;
           this.streamPosition = 0;
           this.startBlock = null;
           this.pendingChunkSends = 0;
           this.lastError = null;
 
-          // Initialize blockchain transport
-          this.transport = new BlockchainTransport(
-            this.config,
-            publicClient,
-            account,
-            (blockNumber) => this._onFirstConfirmation(blockNumber),
-            (blockNumber) => this._onEndConfirmation(blockNumber),
-            () => this._updateStats()
-          );
+          this.transport = session.createTransport({
+            onFirstConfirmation: (bn) => this._onFirstConfirmation(bn),
+            onEndConfirmation: (bn) => this._onEndConfirmation(bn),
+            onStats: () => this._updateStats()
+          });
           await this.transport.initialize();
 
-          // Use existing media stream from video machine
           const mediaStream = this.videoMachine.getMediaStream();
-
-          // Create MediaRecorder
           const mimeType = getSupportedMimeType();
           this.mediaRecorder = new MediaRecorder(mediaStream, {
-            mimeType: mimeType,
-            videoBitsPerSecond: 1500000
+            mimeType, videoBitsPerSecond: VIDEO.videoBitsPerSecond
           });
 
-          // Send metadata packet
           const metadata = {
             mimeType: this.mediaRecorder.mimeType,
-            videoBitsPerSecond: 1500000,
+            videoBitsPerSecond: VIDEO.videoBitsPerSecond,
             startTime: Date.now()
           };
-          const metadataPacket = DVFProtocol.createMetadataPacket(metadata);
-          await this.transport.send(metadataPacket, true, false);
+          await this.transport.send(DVFProtocol.createMetadataPacket(metadata), true, false);
           this.packetCount++;
-          logTx(`META packet: ${metadataPacket.length}B`, 'pending');
+          logTx(`META packet: ${DVFProtocol.createMetadataPacket(metadata).length}B`, 'pending');
 
           codecInfo.innerHTML = `
             <strong>MIME Type:</strong> ${metadata.mimeType}<br>
             <strong>Video Bitrate:</strong> ${metadata.videoBitsPerSecond / 1000} kbps
           `;
 
-          // Wire up MediaRecorder events
           this.mediaRecorder.ondataavailable = (event) => this._handleChunk(event);
           this.mediaRecorder.onerror = (event) => this._handleRecorderError(event);
           this.mediaRecorder.onstop = () => this._handleRecorderStop();
+          this.mediaRecorder.start(VIDEO.chunkMs);
 
-          // Start recording
-          this.mediaRecorder.start(500);
-
-          // Start stats update interval
           this.statsInterval = setInterval(() => this._updateStats(), 500);
-
           this._transitionTo(StreamState.STREAMING);
-
         } catch (err) {
           this.lastError = err;
           console.error('Error starting stream:', err);
@@ -961,23 +576,13 @@
       }
 
       stop() {
-        if (this.state !== StreamState.STREAMING) {
-          return; // Invalid transition
-        }
-
+        if (this.state !== StreamState.STREAMING) return;
         this._transitionTo(StreamState.STOPPING);
-
-        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-          this.mediaRecorder.stop();
-        }
-        // Note: Camera stays active (managed by video machine)
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') this.mediaRecorder.stop();
       }
 
       async _handleChunk(event) {
-        if (event.data.size === 0 || this.state !== StreamState.STREAMING) {
-          return;
-        }
-
+        if (event.data.size === 0 || this.state !== StreamState.STREAMING) return;
         this.pendingChunkSends++;
         try {
           const buffer = await event.data.arrayBuffer();
@@ -1003,78 +608,88 @@
       }
 
       async _handleRecorderStop() {
-        // Wait for pending chunk sends
-        while (this.pendingChunkSends > 0) {
-          await new Promise(resolve => setTimeout(resolve, 10));
-        }
-
-        // Send end packet
+        while (this.pendingChunkSends > 0) await new Promise(resolve => setTimeout(resolve, 10));
         const endPacket = DVFProtocol.createEndPacket(this.streamPosition);
         await this.transport.send(endPacket, false, true);
         this.packetCount++;
         logTx(`END packet: pos=${this.streamPosition}`, 'pending');
-
         this._transitionTo(StreamState.STOPPED);
       }
 
       _cleanup() {
-        if (this.statsInterval) {
-          clearInterval(this.statsInterval);
-          this.statsInterval = null;
-        }
-
+        if (this.statsInterval) { clearInterval(this.statsInterval); this.statsInterval = null; }
         if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
           try { this.mediaRecorder.stop(); } catch (e) {}
         }
         this.mediaRecorder = null;
-        // Note: Camera stays active (managed by video machine)
       }
     }
 
     // ============================================
-    // Initialize State Machines
+    // Initialize + wire up
     // ============================================
     const videoMachine = new VideoActivationMachine();
-    const streamingMachine = new StreamingStateMachine(CONFIG, videoMachine);
+    const streamingMachine = new StreamingStateMachine(videoMachine);
 
-    // ============================================
-    // Event Listeners
-    // ============================================
     previewBtn.addEventListener('click', async () => {
       await videoMachine.toggle();
-
-      // If just activated preview, generate preview stream code
-      if (videoMachine.state === VideoState.PREVIEWING) {
-        try {
-          const currentBlock = await publicClient.getBlockNumber();
-          const previewCode = StreamCode.create(account.address, Number(currentBlock));
-          streamcodeBox.style.display = 'block';
-          streamcodeValue.textContent = previewCode;
-        } catch (err) {
-          console.error('Error generating preview stream code:', err);
-        }
-      } else {
-        // Preview stopped - hide stream code if not streaming
-        if (streamingMachine.state === StreamState.IDLE) {
-          streamcodeBox.style.display = 'none';
-        }
-      }
-
-      // Update streaming UI after video state changes
       streamingMachine._updateUI();
     });
     startBtn.addEventListener('click', () => streamingMachine.start());
     stopBtn.addEventListener('click', () => streamingMachine.stop());
 
+    connectBtn.addEventListener('click', connectWallet);
+    fundBtn.addEventListener('click', fundSession);
+    maxFundLink.addEventListener('click', setMaxFund);
+    resetKeyLink.addEventListener('click', resetSessionKey);
+    refreshLink.addEventListener('click', refreshBalance);
+    copyKeyLink.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(session.sessionAddress);
+        copyKeyLink.textContent = 'copied';
+        setTimeout(() => { copyKeyLink.textContent = 'copy'; }, 1200);
+      } catch {}
+    });
+    streamcodeValue.addEventListener('click', () => {
+      const range = document.createRange();
+      range.selectNodeContents(streamcodeValue);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+
+    function updateStatus(message, type = '') {
+      statusEl.textContent = message;
+      statusEl.className = 'status ' + type;
+    }
+
+    if (window.ethereum) {
+      window.ethereum.on?.('chainChanged', () => refreshBalance());
+      window.ethereum.on?.('accountsChanged', (accs) => {
+        if (!accs || accs.length === 0) {
+          session.funderAddress = null;
+          session.funderWalletClient = null;
+          funderRow.style.display = 'none';
+          fundBtn.disabled = true;
+          connectBtn.disabled = false;
+          connectBtn.textContent = 'Connect wallet';
+          return;
+        }
+        session.funderAddress = accs[0];
+        funderAddrEl.textContent = shortAddr(accs[0]);
+        session._buildClients();
+        refreshBalance();
+      });
+    }
+
     window.addEventListener('beforeunload', () => {
       streamingMachine._cleanup();
+      if (streamingMachine.transport) streamingMachine.transport.close();
       videoMachine.deactivate();
     });
 
-    // Display config
-    document.getElementById('senderAddr').textContent = account.address;
-    document.getElementById('destAddr').textContent = CONFIG.destAddress;
-
+    initSession();
+    videoMachine._updateUI();
   </script>
 </body>
 </html>

@@ -17,6 +17,11 @@ export interface StreamMetadata {
   mimeType: string;
   videoBitsPerSecond: number;
   startTime: number;
+  // Optional file metadata (set when sharing a file rather than a live stream).
+  // When fileName is present, receivers download the whole file and play it as
+  // a Blob, which supports any format the browser can decode.
+  fileName?: string;
+  fileSize?: number;
 }
 
 export interface ParsedMetadataPacket {

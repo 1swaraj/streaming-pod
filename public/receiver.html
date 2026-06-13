@@ -290,7 +290,7 @@
     </div>
 
     <div class="buffer-section">
-      <div class="label">Playback Buffer</div>
+      <div class="label" id="bufferLabel">Playback Buffer</div>
       <div class="buffer-bar">
         <div class="buffer-fill" id="bufferFill" style="width: 0%"></div>
       </div>
@@ -356,19 +356,20 @@
     // Configuration
     // ============================================
     const CONFIG = {
-      rpcUrl: 'http://127.0.0.1:8545',
+      // Monad MAINNET by default. Override with localStorage.MONAD_CHAIN_ID
+      // (e.g. 10143 for testnet) and localStorage.ETH_RPC_URL (e.g. a local node).
+      chainId: parseInt(localStorage['MONAD_CHAIN_ID'] || '143', 10),
       destAddress: '0x6476660100000000000000000000000000000000',
       pollInterval: 300,
       autoStopTimeout: 20 * 60 * 1000
     };
-    if (localStorage['ETH_RPC_URL'] != null) {
-      CONFIG['rpcUrl'] = localStorage['ETH_RPC_URL'];
-    }
+    CONFIG.rpcUrl = localStorage['ETH_RPC_URL']
+      || (CONFIG.chainId === 10143 ? 'https://testnet-rpc.monad.xyz' : 'https://rpc.monad.xyz');
 
     const localChain = defineChain({
-      id: 31337,
-      name: 'Localhost',
-      nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+      id: CONFIG.chainId,
+      name: CONFIG.chainId === 143 ? 'Monad' : CONFIG.chainId === 10143 ? 'Monad Testnet' : `Chain ${CONFIG.chainId}`,
+      nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
       rpcUrls: {
         default: { http: [CONFIG.rpcUrl] }
       }
@@ -708,6 +709,7 @@
     const outOfOrderEl = document.getElementById('outOfOrder');
     const blocksScannedEl = document.getElementById('blocksScanned');
     const bufferFill = document.getElementById('bufferFill');
+    const bufferLabel = document.getElementById('bufferLabel');
     const reassemblyBar = document.getElementById('reassemblyBar');
     const reassemblyCursor = document.getElementById('reassemblyCursor');
     const streamcodeInput = document.getElementById('streamcodeInput');
@@ -735,6 +737,13 @@
     let hasUserInteracted = false;  // Track if user has interacted with page
     let hasStartedPlayback = false;  // Track if we've started playback
     const MIN_BUFFER_SECONDS = 1.5;  // Minimum buffer before auto-play
+
+    // Playback mode: 'live' uses MediaSource (progressive, broadcaster streams);
+    // 'file' downloads the whole file then plays it as a Blob (any format, set
+    // when the metadata carries a fileName — i.e. an uploaded file).
+    let playbackMode = 'live';
+    let downloadedChunks = [];   // accumulated contiguous bytes in 'file' mode
+    let fileBlobUrl = null;      // object URL once the file is reassembled
 
     // ============================================
     // UI Helpers
@@ -935,6 +944,61 @@
     }
 
     // ============================================
+    // File mode (Blob playback) — used for uploaded files
+    // ============================================
+    // Route reassembled data to the active playback path.
+    function ingestData() {
+      if (playbackMode === 'file') {
+        collectFileData();
+      } else {
+        processPendingAppends();
+      }
+    }
+
+    function collectFileData() {
+      // Drain any newly-contiguous bytes and hold onto them for the final Blob.
+      const data = reassemblyBuffer.getContiguousData();
+      if (data && data.byteLength > 0) {
+        downloadedChunks.push(data);
+      }
+
+      updateReassemblyVisual();
+      updateFileProgress();
+
+      if (reassemblyBuffer.isComplete()) {
+        finalizeFilePlayback();
+      }
+    }
+
+    function updateFileProgress() {
+      const total = (codecData && codecData.fileSize) || reassemblyBuffer.totalLength;
+      if (total) {
+        const pct = Math.min(100, (reassemblyBuffer.reassembledPosition / total) * 100);
+        bufferFill.style.width = pct + '%';
+        if (!reassemblyBuffer.isComplete()) {
+          updateStatus(`Downloading file from blockchain… ${pct.toFixed(0)}%`, 'waiting');
+        }
+      }
+    }
+
+    function finalizeFilePlayback() {
+      if (fileBlobUrl) return; // already built
+
+      const blob = new Blob(downloadedChunks, { type: codecData.mimeType || 'video/mp4' });
+      fileBlobUrl = URL.createObjectURL(blob);
+      player.src = fileBlobUrl;
+      player.load();
+      bufferFill.style.width = '100%';
+
+      updateStatus('Download complete — ready to play', 'connected');
+      logBlock('File reassembled, ready to play', 'packet');
+
+      player.play().catch(() => {
+        updateStatus('Download complete — press play to watch', 'connected');
+      });
+    }
+
+    // ============================================
     // Packet Handler
     // ============================================
     function handlePacket(packetData) {
@@ -950,17 +1014,37 @@
       switch (packet.type) {
         case DVFProtocol.TYPE_METADATA:
           codecData = packet.metadata;
-          codecInfo.innerHTML = `
-            <strong>MIME Type:</strong> ${codecData.mimeType}<br>
-            <strong>Video Bitrate:</strong> ${codecData.videoBitsPerSecond / 1000} kbps
-          `;
-          logBlock(`META: ${codecData.mimeType}`, 'packet');
+
+          // Uploaded files carry a fileName: download fully, then play as a Blob
+          // (works for any format). Live broadcasts use progressive MediaSource.
+          playbackMode = codecData.fileName ? 'file' : 'live';
+
+          if (playbackMode === 'file') {
+            codecInfo.innerHTML = `
+              <strong>File:</strong> ${codecData.fileName}<br>
+              <strong>Type:</strong> ${codecData.mimeType || 'unknown'}${codecData.fileSize ? `<br><strong>Size:</strong> ${formatBytes(codecData.fileSize)}` : ''}
+            `;
+            bufferLabel.textContent = 'Download Progress';
+          } else {
+            codecInfo.innerHTML = `
+              <strong>MIME Type:</strong> ${codecData.mimeType}<br>
+              <strong>Video Bitrate:</strong> ${codecData.videoBitsPerSecond / 1000} kbps
+            `;
+            bufferLabel.textContent = 'Playback Buffer';
+          }
+          logBlock(`META: ${codecData.fileName || codecData.mimeType}`, 'packet');
 
           reassemblyBuffer.reset();
           isInitialized = false;
           pendingAppend = [];
+          downloadedChunks = [];
+          if (fileBlobUrl) { URL.revokeObjectURL(fileBlobUrl); fileBlobUrl = null; }
 
-          initializeMediaSource();
+          if (playbackMode === 'live') {
+            initializeMediaSource();
+          } else {
+            updateStatus('Downloading file from blockchain…', 'waiting');
+          }
           break;
 
         case DVFProtocol.TYPE_STREAM:
@@ -968,7 +1052,7 @@
           logBlock(`STREAM: pos=${packet.position}, ${packet.data.byteLength}B`, 'packet');
 
           reassemblyBuffer.addChunk(packet.position, packet.data, false);
-          processPendingAppends();
+          ingestData();
           break;
 
         case DVFProtocol.TYPE_END:
@@ -978,8 +1062,10 @@
           logBlock(`END: pos=${packet.position}, total=${packet.position + packet.data.byteLength}B`, 'packet');
 
           reassemblyBuffer.addChunk(packet.position, packet.data, true);
-          processPendingAppends();
-          updateStatus('Stream download complete', 'connected');
+          ingestData();
+          if (playbackMode === 'live') {
+            updateStatus('Stream download complete', 'connected');
+          }
 
           // Stop scanning for more blocks
           if (listener) {
@@ -1008,16 +1094,20 @@
       }
       mediaSource = null;
       sourceBuffer = null;
+      if (fileBlobUrl) { URL.revokeObjectURL(fileBlobUrl); fileBlobUrl = null; }
       player.src = '';
 
       reassemblyBuffer = new ReassemblyBuffer();
       pendingAppend = [];
+      downloadedChunks = [];
+      playbackMode = 'live';
 
       codecData = null;
       packetCount = 0;
       totalStreamBytes = 0;
       isInitialized = false;
       hasStartedPlayback = false;
+      bufferLabel.textContent = 'Playback Buffer';
 
       currentBlockEl.textContent = '-';
       packetCountEl.textContent = '0';

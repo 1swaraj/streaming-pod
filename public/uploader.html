@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Uploader - Blockchain Transport</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #FFFFFF;
+      color: #0E091C;
+    }
+    h1 {
+      color: #0E091C;
+      margin-bottom: 8px;
+    }
+    h1 span {
+      font-size: 14px;
+      background: #6E54FF;
+      color: #FFFFFF;
+      padding: 4px 8px;
+      border-radius: 4px;
+      vertical-align: middle;
+      margin-left: 10px;
+    }
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+    video {
+      width: 100%;
+      max-width: 100%;
+      background: #000;
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+
+    /* Wallet panel */
+    .wallet-panel {
+      border: 2px solid #6E54FF;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 10px 0 20px;
+      background: #FBFAFF;
+    }
+    .wallet-panel .row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin: 6px 0;
+    }
+    .wallet-panel .kv {
+      font-size: 13px;
+      color: #666;
+    }
+    .wallet-panel .kv b {
+      color: #6E54FF;
+      font-family: monospace;
+    }
+    .wallet-panel .fund-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .wallet-panel input[type="text"] {
+      width: 120px;
+      padding: 8px 10px;
+      font-family: monospace;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .wallet-panel .warn {
+      font-size: 12px;
+      color: #b45309;
+      margin-top: 10px;
+    }
+    .wallet-panel .reset-link {
+      font-size: 12px;
+      color: #6E54FF;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* Drop / pick zone */
+    .drop-zone {
+      border: 2px dashed #6E54FF;
+      border-radius: 12px;
+      padding: 48px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #FBFAFF;
+      margin: 10px 0;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      background: #F1EDFF;
+      border-color: #FFAE45;
+    }
+    .drop-zone .big {
+      font-size: 18px;
+      color: #0E091C;
+      margin-bottom: 6px;
+    }
+    .drop-zone .small {
+      font-size: 13px;
+      color: #666;
+    }
+    .drop-zone input { display: none; }
+
+    .file-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0;
+    }
+    .file-meta .chip {
+      background: #F5F5F5;
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+    .file-meta .chip b { color: #6E54FF; font-family: monospace; }
+
+    .controls {
+      margin: 20px 0;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #connectBtn, #uploadBtn {
+      background: #6E54FF;
+      color: #FFFFFF;
+    }
+    #connectBtn:hover:not(:disabled), #uploadBtn:hover:not(:disabled) {
+      background: #5a45d6;
+    }
+    #fundBtn {
+      background: #85E6FF;
+      color: #0E091C;
+    }
+    #fundBtn:hover:not(:disabled) { background: #6dd4ed; }
+    #cancelBtn {
+      background: #FFAE45;
+      color: #0E091C;
+    }
+    #cancelBtn:hover:not(:disabled) {
+      background: #e69a3a;
+    }
+    .status {
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin: 15px 0;
+      background: #F5F5F5;
+      font-size: 14px;
+    }
+    .status.connected {
+      border-left: 4px solid #00cc6a;
+      background: #f0fff4;
+    }
+    .status.error {
+      border-left: 4px solid #ff4757;
+      background: #fff5f5;
+    }
+
+    /* Upload progress bar */
+    .progress-section { margin: 15px 0; }
+    .progress-section .label { font-size: 12px; color: #666; margin-bottom: 6px; }
+    .progress-bar {
+      height: 12px;
+      background: #E0E0E0;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #6E54FF, #85E6FF);
+      transition: width 0.2s ease;
+    }
+
+    .streamcode-box {
+      background: #FFFFFF;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+      border: 2px solid #6E54FF;
+    }
+    .streamcode-box .label {
+      color: #666;
+      font-size: 10px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .streamcode-box .value {
+      color: #0E091C;
+      font-family: monospace;
+      font-size: 14px;
+      word-break: break-all;
+      padding: 10px;
+      background: #F5F5F5;
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: all;
+    }
+    .streamcode-box .value:hover {
+      background: #E8E8E8;
+    }
+    .streamcode-box .actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .streamcode-box a.watch {
+      display: inline-block;
+      padding: 8px 16px;
+      background: #85E6FF;
+      color: #0E091C;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .streamcode-box a.watch:hover { background: #6dd4ed; }
+
+    /* Stats bar - horizontal layout */
+    .stats-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 15px 0;
+      padding: 12px;
+      background: #F5F5F5;
+      border-radius: 6px;
+    }
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: #FFFFFF;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .stat-item .label { color: #666; }
+    .stat-item .value {
+      font-weight: 600;
+      color: #6E54FF;
+      font-family: monospace;
+    }
+
+    .tx-log {
+      background: #0E091C;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 11px;
+      margin-top: 15px;
+      max-height: 180px;
+      overflow-y: auto;
+      color: #ccc;
+    }
+    .tx-log div {
+      margin: 2px 0;
+      padding: 2px 0;
+      border-bottom: 1px solid #1a1a2e;
+    }
+    .tx-log .pending { color: #FFAE45; }
+    .tx-log .confirmed { color: #00cc6a; }
+    .tx-log .retry { color: #FF8EE4; }
+    .tx-log .error { color: #ff4757; }
+
+    .config-box {
+      background: #F5F5F5;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      margin: 15px 0;
+      word-break: break-all;
+    }
+    .config-box .label {
+      color: #666;
+      font-size: 10px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    .config-box .value {
+      color: #6E54FF;
+      margin-bottom: 10px;
+    }
+    .config-box .value:last-child { margin-bottom: 0; }
+  </style>
+</head>
+<body>
+  <h1>Video Uploader <span>Blockchain</span></h1>
+  <p class="subtitle">Upload a video file and store it on-chain — replayable by anyone with the stream code.</p>
+
+  <!-- Wallet / session key -->
+  <div class="wallet-panel" id="walletPanel">
+    <div class="row">
+      <span class="kv">Network: <b id="chainId">-</b></span>
+      <span class="kv">Session key (streamer): <b id="sessionAddr">-</b></span>
+      <span class="reset-link" id="copyKeyLink">copy</span>
+      <a class="reset-link" id="explorerLink" href="#" target="_blank" rel="noopener">explorer</a>
+      <span class="reset-link" id="resetKeyLink">new key</span>
+    </div>
+    <div class="row">
+      <span class="kv">Session balance: <b id="sessionBalance">-</b></span>
+      <span class="reset-link" id="refreshLink">refresh</span>
+    </div>
+
+    <div class="warn">
+      ⚠ Mainnet — real MON. The session key is a hot key in this browser's localStorage; only fund what you'll spend. On-chain video is costly — check "Est. max cost" before funding.
+    </div>
+
+    <div class="fund-controls">
+      <button id="connectBtn">Connect wallet</button>
+      <input type="text" id="fundAmount" value="0.02" />
+      <span class="reset-link" id="maxFundLink">max</span>
+      <button id="fundBtn" disabled>Fund (1 prompt)</button>
+    </div>
+    <div class="row">
+      <span class="kv" id="fundHint">Connect a wallet to fund in one prompt — or send MON to the session address from any wallet, then click refresh.</span>
+    </div>
+    <div class="row" id="funderRow" style="display:none;">
+      <span class="kv">Wallet: <b id="funderAddr">-</b></span>
+      <span class="kv">Wallet balance: <b id="funderBalance">-</b></span>
+    </div>
+  </div>
+
+  <div class="drop-zone" id="dropZone">
+    <div class="big">Click to choose a video, or drop one here</div>
+    <div class="small">Any format your browser can read (.webm plays progressively; .mp4/.mov download then play)</div>
+    <input type="file" id="fileInput" accept="video/*" />
+  </div>
+
+  <div class="file-meta" id="fileMeta" style="display:none;">
+    <div class="chip">File: <b id="fileName">-</b></div>
+    <div class="chip">Size: <b id="fileSize">-</b></div>
+    <div class="chip">Type: <b id="fileType">-</b></div>
+    <div class="chip">Chunks: <b id="chunkEstimate">-</b></div>
+    <div class="chip">Est. max cost: <b id="costEstimate">-</b></div>
+  </div>
+
+  <video id="preview" controls playsinline style="display:none;"></video>
+
+  <div class="controls">
+    <button id="uploadBtn" disabled>Upload to Blockchain</button>
+    <button id="cancelBtn" disabled>Cancel</button>
+  </div>
+
+  <div class="status" id="status">
+    Fund the session key and choose a video file to begin.
+  </div>
+
+  <div class="streamcode-box" id="streamcodeBox" style="display: none;">
+    <div class="label">Stream Code (share this!)</div>
+    <div class="value" id="streamcodeValue">-</div>
+    <div class="actions">
+      <a class="watch" id="watchLink" href="#" target="_blank" rel="noopener">Watch in receiver →</a>
+    </div>
+  </div>
+
+  <div class="progress-section">
+    <div class="label">Upload Progress</div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="label">Packets:</span>
+      <span class="value" id="packetCount">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="label">TX Pending:</span>
+      <span class="value" id="txPending">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="label">TX Confirmed:</span>
+      <span class="value" id="txConfirmed">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="label">Retries:</span>
+      <span class="value" id="txRetries">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="label">Uploaded:</span>
+      <span class="value" id="uploadedBytes">0 KB</span>
+    </div>
+    <div class="stat-item">
+      <span class="label">Gas Spent:</span>
+      <span class="value" id="gasSpent">0 MON</span>
+    </div>
+  </div>
+
+  <div class="tx-log" id="txLog">
+    <div>Transaction log will appear here...</div>
+  </div>
+
+  <div class="config-box">
+    <div class="label">Streamer (session) Address</div>
+    <div class="value" id="senderAddr">-</div>
+    <div class="label">Destination Address</div>
+    <div class="value" id="destAddr">-</div>
+  </div>
+
+  <script type="module">
+    import {
+      createWalletClient,
+      createPublicClient,
+      http,
+      custom,
+      defineChain,
+      toHex,
+      parseGwei,
+      parseEther,
+      formatEther,
+      formatGwei
+    } from 'https://esm.sh/viem';
+    import { privateKeyToAccount, generatePrivateKey } from 'https://esm.sh/viem/accounts';
+    import { DVFProtocol, StreamCode } from './dist/index.js';
+
+    // ============================================
+    // Configuration
+    // ============================================
+    const CONFIG = {
+      destAddress: '0x6476660100000000000000000000000000000000',
+
+      // Gas settings. These are only fallbacks — refreshFees() overrides them
+      // from the live chain on connect. gasLimit is null -> computed per chunk
+      // from calldata size, so the session key only needs realistic gas.
+      maxFeePerGas: parseGwei('50'),
+      basePriorityFee: parseGwei('1'),
+      priorityFeeIncrement: parseGwei('0.1'),
+      gasLimit: null,
+
+      // Retry settings
+      confirmationTimeout: 3000,
+      maxRetries: 10,
+
+      // Bytes of file payload per transaction
+      chunkSize: 64 * 1024,
+
+      // Storage key for the persisted session private key
+      sessionKeyStorage: 'DVF_SESSION_KEY'
+    };
+
+    // Optional RPC override. Reads and the session key's chunk txs go straight
+    // to this RPC (the Monad public RPC is CORS-enabled), so uploading never
+    // depends on the wallet's chain support. Set ETH_RPC_URL for a custom node.
+    const RPC_OVERRIDE = localStorage['ETH_RPC_URL'] || null;
+
+    // Target network. Defaults to Monad MAINNET (chain 143). The wallet is only
+    // used for the funding transfer; on connect it's switched to this chain.
+    // Override with localStorage.MONAD_CHAIN_ID (e.g. 10143 for testnet) and
+    // localStorage.ETH_RPC_URL.
+    const TARGET = (() => {
+      const id = parseInt(localStorage['MONAD_CHAIN_ID'] || '143', 10);
+      const name = id === 143 ? 'Monad' : id === 10143 ? 'Monad Testnet' : `Chain ${id}`;
+      const defaultRpc = id === 10143 ? 'https://testnet-rpc.monad.xyz' : 'https://rpc.monad.xyz';
+      const explorer = id === 10143 ? 'https://testnet.monadexplorer.com' : 'https://monadexplorer.com';
+      return {
+        id,
+        hexId: '0x' + id.toString(16),
+        name,
+        rpcUrl: RPC_OVERRIDE || defaultRpc,
+        explorer,
+        symbol: 'MON'
+      };
+    })();
+
+    // ============================================
+    // Wallet + session-key state (set on connect)
+    // ============================================
+    let activeChain = null;       // chain derived from the wallet's chainId
+    let publicClient = null;      // reads
+    let funderWalletClient = null;// the connected wallet (prompts on funding)
+    let sessionAccount = null;    // local burner account, signs chunks silently
+    let sessionWalletClient = null;
+    let funderAddress = null;
+    let nativeSymbol = 'MON';
+    let sessionBalance = 0n;
+    let funderBalance = 0n;
+    let connecting = false;
+
+    // ============================================
+    // Packet State Machine (from broadcaster, gas made dynamic)
+    // ============================================
+    const PacketState = {
+      SENDING: 'SENDING',
+      PENDING: 'PENDING',
+      CONFIRMED: 'CONFIRMED',
+      FAILED: 'FAILED'
+    };
+
+    // Intrinsic gas INCLUDING the EIP-7623 calldata floor, which Monad enforces.
+    // For data-heavy txs the floor (21000 + 10*tokens, tokens = zeroBytes +
+    // 4*nonzeroBytes) dominates the legacy cost (21000 + 4/16 per byte), so a
+    // flat ~20/byte limit is rejected as "Gas limit too low".
+    function intrinsicGas(data) {
+      let zero = 0n, nonzero = 0n;
+      for (let i = 0; i < data.length; i++) {
+        if (data[i] === 0) zero++; else nonzero++;
+      }
+      const standard = 21000n + zero * 4n + nonzero * 16n;
+      const floor = 21000n + (zero + nonzero * 4n) * 10n;
+      return standard > floor ? standard : floor;
+    }
+
+    function gasForPacket(config, packetData) {
+      if (config.gasLimit != null) return config.gasLimit;
+      return intrinsicGas(packetData) + 5000n; // small safety buffer
+    }
+
+    class PacketStateMachine {
+      constructor(nonce, packetData, config, callbacks, isFirst = false, isEnd = false) {
+        this.nonce = nonce;
+        this.packetData = packetData;
+        this.config = config;
+        this.callbacks = callbacks;  // { onConfirmed, onFailed }
+        this.isFirst = isFirst;
+        this.isEnd = isEnd;
+
+        this.state = PacketState.SENDING;
+        this.txHashes = [];
+        this.currentTxHash = null;
+        this.priorityFee = config.basePriorityFee;
+        this.retryCount = 0;
+        this.lastSendTime = null;
+      }
+
+      _transitionTo(newState) {
+        const oldState = this.state;
+        this.state = newState;
+        logTx(`TX nonce=${this.nonce}: ${oldState} -> ${newState}`,
+          newState === PacketState.CONFIRMED ? 'confirmed' :
+          newState === PacketState.FAILED ? 'error' : 'pending');
+      }
+
+      async start(walletClient) {
+        await this._broadcast(walletClient);
+      }
+
+      async _broadcast(walletClient) {
+        try {
+          const hexData = toHex(this.packetData);
+
+          const txHash = await walletClient.sendTransaction({
+            to: this.config.destAddress,
+            data: hexData,
+            nonce: this.nonce,
+            maxFeePerGas: this.config.maxFeePerGas,
+            maxPriorityFeePerGas: this.priorityFee,
+            gas: gasForPacket(this.config, this.packetData)
+          });
+
+          this.txHashes.push(txHash);
+          this.currentTxHash = txHash;
+          this.lastSendTime = Date.now();
+
+          const retryLabel = this.retryCount > 0 ? ` (retry #${this.retryCount})` : '';
+          logTx(`TX nonce=${this.nonce}${retryLabel}: ${txHash.slice(0, 18)}...`, 'pending');
+
+          this._transitionTo(PacketState.PENDING);
+
+        } catch (err) {
+          logTx(`TX nonce=${this.nonce} ERROR: ${err.message}`, 'error');
+          console.error('Transaction error:', err);
+
+          if (err.message.includes('nonce too low')) {
+            this._transitionTo(PacketState.CONFIRMED);
+            this.callbacks.onConfirmed(null);
+          } else {
+            this._transitionTo(PacketState.FAILED);
+            this.callbacks.onFailed(err);
+          }
+        }
+      }
+
+      async _checkReceipt(publicClient, hash) {
+        try {
+          return await publicClient.getTransactionReceipt({ hash });
+        } catch {
+          return null;
+        }
+      }
+
+      _isTimedOut() {
+        if (!this.lastSendTime) return false;
+        return Date.now() - this.lastSendTime > this.config.confirmationTimeout;
+      }
+
+      _bumpPriorityFee() {
+        this.priorityFee = this.priorityFee + this.config.priorityFeeIncrement;
+        this.retryCount++;
+      }
+
+      isTerminal() {
+        return this.state === PacketState.CONFIRMED || this.state === PacketState.FAILED;
+      }
+
+      async tick(publicClient, walletClient) {
+        switch (this.state) {
+          case PacketState.SENDING:
+            break;
+
+          case PacketState.PENDING:
+            for (const hash of this.txHashes) {
+              const receipt = await this._checkReceipt(publicClient, hash);
+              if (receipt) {
+                this._transitionTo(PacketState.CONFIRMED);
+                logTx(`TX nonce=${this.nonce} CONFIRMED in block ${receipt.blockNumber}`, 'confirmed');
+                this.callbacks.onConfirmed(receipt);
+                return;
+              }
+            }
+
+            if (this._isTimedOut()) {
+              if (this.retryCount >= this.config.maxRetries) {
+                this._transitionTo(PacketState.FAILED);
+                logTx(`TX nonce=${this.nonce} MAX RETRIES reached`, 'error');
+                this.callbacks.onFailed(new Error('Max retries exceeded'));
+              } else {
+                logTx(`TX nonce=${this.nonce} RETRY with priority ${Number(this.priorityFee + this.config.priorityFeeIncrement) / 1e9} gwei`, 'retry');
+                this._bumpPriorityFee();
+                this._transitionTo(PacketState.SENDING);
+                await this._broadcast(walletClient);
+              }
+            }
+            break;
+
+          case PacketState.CONFIRMED:
+          case PacketState.FAILED:
+            break;
+        }
+      }
+    }
+
+    // ============================================
+    // Blockchain Transport (uses the session wallet client)
+    // ============================================
+    class BlockchainTransport {
+      constructor(config, publicClient, walletClient, account, onFirstConfirmation, onEndConfirmation, onStatsUpdate) {
+        this.config = config;
+        this.publicClient = publicClient;
+        this.walletClient = walletClient;
+        this.account = account;
+        this.onFirstConfirmation = onFirstConfirmation;
+        this.onEndConfirmation = onEndConfirmation;
+        this.onStatsUpdate = onStatsUpdate;
+
+        this.currentNonce = null;
+        this.nonceInitialized = false;
+
+        this.packets = new Map();
+
+        this.totalRetries = 0;
+        this.totalGasSpent = 0n;
+
+        this.firstConfirmed = false;
+
+        this.tickInterval = setInterval(() => this._tick(), 1000);
+      }
+
+      async initialize() {
+        this.currentNonce = await this.publicClient.getTransactionCount({
+          address: this.account.address
+        });
+        this.nonceInitialized = true;
+        logTx(`Initialized nonce: ${this.currentNonce}`, 'confirmed');
+      }
+
+      _handleConfirmed(machine, receipt) {
+        if (receipt) {
+          this.totalGasSpent += receipt.gasUsed * receipt.effectiveGasPrice;
+        }
+
+        this.totalRetries += machine.retryCount;
+        this.onStatsUpdate();
+
+        if (machine.isFirst && !this.firstConfirmed) {
+          this.firstConfirmed = true;
+          if (this.onFirstConfirmation && receipt) {
+            this.onFirstConfirmation(receipt.blockNumber);
+          }
+        }
+
+        if (machine.isEnd && this.onEndConfirmation && receipt) {
+          this.onEndConfirmation(receipt.blockNumber);
+        }
+      }
+
+      _handleFailed(machine, error) {
+        this.totalRetries += machine.retryCount;
+        this.onStatsUpdate();
+        console.error(`Packet nonce=${machine.nonce} failed:`, error);
+      }
+
+      async send(packetData, isFirst = false, isEnd = false) {
+        if (!this.nonceInitialized) {
+          await this.initialize();
+        }
+
+        const nonce = this.currentNonce;
+        this.currentNonce++;
+
+        const machine = new PacketStateMachine(nonce, packetData, this.config, {
+          onConfirmed: (receipt) => this._handleConfirmed(machine, receipt),
+          onFailed: (error) => this._handleFailed(machine, error)
+        }, isFirst, isEnd);
+
+        this.packets.set(nonce, machine);
+        this.onStatsUpdate();
+
+        await machine.start(this.walletClient);
+      }
+
+      async _tick() {
+        for (const machine of this.packets.values()) {
+          if (!machine.isTerminal()) {
+            await machine.tick(this.publicClient, this.walletClient);
+          }
+        }
+        this.onStatsUpdate();
+      }
+
+      getPendingCount() {
+        return [...this.packets.values()].filter(m =>
+          m.state === PacketState.SENDING || m.state === PacketState.PENDING
+        ).length;
+      }
+
+      getConfirmedCount() {
+        return [...this.packets.values()].filter(m =>
+          m.state === PacketState.CONFIRMED
+        ).length;
+      }
+
+      getRetryCount() { return this.totalRetries; }
+      getCurrentNonce() { return this.currentNonce; }
+      getTotalGasSpent() { return this.totalGasSpent; }
+      getSenderAddress() { return this.account.address; }
+
+      close() {
+        clearInterval(this.tickInterval);
+      }
+    }
+
+    // ============================================
+    // DOM Elements
+    // ============================================
+    const connectBtn = document.getElementById('connectBtn');
+    const funderRow = document.getElementById('funderRow');
+    const funderAddrEl = document.getElementById('funderAddr');
+    const chainIdEl = document.getElementById('chainId');
+    const sessionAddrEl = document.getElementById('sessionAddr');
+    const sessionBalanceEl = document.getElementById('sessionBalance');
+    const funderBalanceEl = document.getElementById('funderBalance');
+    const copyKeyLink = document.getElementById('copyKeyLink');
+    const explorerLink = document.getElementById('explorerLink');
+    const refreshLink = document.getElementById('refreshLink');
+    const resetKeyLink = document.getElementById('resetKeyLink');
+    const fundAmount = document.getElementById('fundAmount');
+    const maxFundLink = document.getElementById('maxFundLink');
+    const fundBtn = document.getElementById('fundBtn');
+    const fundHint = document.getElementById('fundHint');
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileMeta = document.getElementById('fileMeta');
+    const fileNameEl = document.getElementById('fileName');
+    const fileSizeEl = document.getElementById('fileSize');
+    const fileTypeEl = document.getElementById('fileType');
+    const chunkEstimateEl = document.getElementById('chunkEstimate');
+    const costEstimateEl = document.getElementById('costEstimate');
+    const preview = document.getElementById('preview');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const statusEl = document.getElementById('status');
+    const progressFill = document.getElementById('progressFill');
+    const streamcodeBox = document.getElementById('streamcodeBox');
+    const streamcodeValue = document.getElementById('streamcodeValue');
+    const watchLink = document.getElementById('watchLink');
+    const packetCountEl = document.getElementById('packetCount');
+    const txPendingEl = document.getElementById('txPending');
+    const txConfirmedEl = document.getElementById('txConfirmed');
+    const txRetriesEl = document.getElementById('txRetries');
+    const uploadedBytesEl = document.getElementById('uploadedBytes');
+    const gasSpentEl = document.getElementById('gasSpent');
+    const txLogEl = document.getElementById('txLog');
+
+    // ============================================
+    // UI Helpers
+    // ============================================
+    function logTx(message, className = '') {
+      const div = document.createElement('div');
+      div.textContent = `${new Date().toISOString().substr(11, 12)} ${message}`;
+      if (className) div.className = className;
+      txLogEl.insertBefore(div, txLogEl.firstChild);
+      if (txLogEl.children.length > 100) {
+        txLogEl.removeChild(txLogEl.lastChild);
+      }
+    }
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+
+    function shortAddr(a) {
+      return a ? `${a.slice(0, 6)}…${a.slice(-4)}` : '-';
+    }
+
+    function setStatus(message, type = '') {
+      statusEl.textContent = message;
+      statusEl.className = 'status ' + type;
+    }
+
+    function showStreamCode(code) {
+      streamcodeBox.style.display = 'block';
+      streamcodeValue.textContent = code;
+      watchLink.href = `./receiver.html#${code}`;
+    }
+
+    // ============================================
+    // Wallet + session key
+    // ============================================
+    function loadOrCreateSessionKey() {
+      let pk = localStorage[CONFIG.sessionKeyStorage];
+      if (!pk || !/^0x[0-9a-fA-F]{64}$/.test(pk)) {
+        pk = generatePrivateKey();
+        localStorage[CONFIG.sessionKeyStorage] = pk;
+      }
+      sessionAccount = privateKeyToAccount(pk);
+      return sessionAccount;
+    }
+
+    function buildTransports() {
+      // Reads and the session key's chunk txs go straight to the Monad RPC
+      // (CORS-enabled). The session key is a LOCAL account, so viem signs
+      // locally and broadcasts via eth_sendRawTransaction — no wallet, no
+      // per-chunk popups, and no dependency on the wallet's chain support.
+      publicClient = createPublicClient({ chain: activeChain, transport: http(TARGET.rpcUrl) });
+      sessionWalletClient = createWalletClient({
+        account: sessionAccount,
+        chain: activeChain,
+        transport: http(TARGET.rpcUrl)
+      });
+      // The wallet is only used for the funding transfer (one prompt).
+      if (window.ethereum && funderAddress) {
+        funderWalletClient = createWalletClient({
+          account: funderAddress,
+          chain: activeChain,
+          transport: custom(window.ethereum)
+        });
+      }
+    }
+
+    async function refreshBalance() {
+      if (!publicClient) return;
+      try {
+        if (sessionAccount) {
+          sessionBalance = await publicClient.getBalance({ address: sessionAccount.address });
+          sessionBalanceEl.textContent = `${formatEther(sessionBalance)} ${nativeSymbol}`;
+        }
+        if (funderAddress) {
+          funderBalance = await publicClient.getBalance({ address: funderAddress });
+          funderBalanceEl.textContent = `${formatEther(funderBalance)} ${nativeSymbol}`;
+        }
+      } catch (err) {
+        console.error('Balance read failed:', err);
+      }
+      uploader._updateUI();
+    }
+
+    // Pull the live gas price from the chain so chunk txs use realistic fees
+    // (the hardcoded default is far too high for a funded-from-faucet wallet).
+    async function refreshFees() {
+      if (!publicClient) return;
+      try {
+        const gp = await publicClient.getGasPrice();
+        CONFIG.maxFeePerGas = gp * 2n;
+        CONFIG.basePriorityFee = gp / 5n > 0n ? gp / 5n : 1n;
+        CONFIG.priorityFeeIncrement = CONFIG.basePriorityFee;
+        logTx(`Network gas ~${formatGwei(gp)} gwei → maxFee ${formatGwei(CONFIG.maxFeePerGas)} gwei`, 'confirmed');
+      } catch (err) {
+        logTx(`Gas price fetch failed (${err.shortMessage || err.message}); using defaults`, 'retry');
+      }
+      updateCostEstimate();
+    }
+
+    // Worst-case upload cost = total calldata gas × maxFeePerGas. This is what
+    // the session key must hold (gas is reserved at maxFee, refunded to actual).
+    function estimateUploadCost(fileSize) {
+      const chunks = BigInt(Math.ceil(fileSize / CONFIG.chunkSize));
+      // Worst case: all-nonzero calldata -> EIP-7623 floor ≈ 21000 + 40*bytes per tx.
+      const totalGas = chunks * 21000n + BigInt(fileSize) * 40n;
+      const maxFee = CONFIG.maxFeePerGas || parseGwei('2');
+      return totalGas * maxFee;
+    }
+
+    function updateCostEstimate() {
+      if (!uploader || !uploader.file) return;
+      const est = estimateUploadCost(uploader.file.size);
+      costEstimateEl.textContent = `~${formatEther(est)} ${nativeSymbol}`;
+    }
+
+    // Make sure the wallet is on the target (Monad) chain, switching or adding
+    // the network if needed. Throws if the user rejects.
+    async function ensureChain(target) {
+      const current = parseInt(await window.ethereum.request({ method: 'eth_chainId' }), 16);
+      if (current === target.id) return;
+
+      logTx(`Wallet on chain ${current}; switching to ${target.name} (${target.id})…`, 'pending');
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: target.hexId }]
+        });
+      } catch (err) {
+        const code = err.code ?? err?.cause?.code;
+        if (code === 4902 || /unrecognized chain|add this network/i.test(err.message || '')) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: target.hexId,
+              chainName: target.name,
+              nativeCurrency: { name: target.symbol, symbol: target.symbol, decimals: 18 },
+              rpcUrls: [target.rpcUrl],
+              blockExplorerUrls: [target.explorer]
+            }]
+          });
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    function showSessionAddress() {
+      sessionAddrEl.textContent = shortAddr(sessionAccount.address);
+      sessionAddrEl.title = sessionAccount.address;
+      document.getElementById('senderAddr').textContent = sessionAccount.address;
+      explorerLink.href = `${TARGET.explorer}/address/${sessionAccount.address}`;
+    }
+
+    // Set up the session key + direct-RPC clients on page load. No wallet
+    // needed — the session key signs chunk txs itself, and it can be funded
+    // either via the connected wallet or by sending MON to its address.
+    function initSession() {
+      nativeSymbol = TARGET.symbol;
+      activeChain = defineChain({
+        id: TARGET.id,
+        name: TARGET.name,
+        nativeCurrency: { name: nativeSymbol, symbol: nativeSymbol, decimals: 18 },
+        rpcUrls: { default: { http: [TARGET.rpcUrl] } }
+      });
+      loadOrCreateSessionKey();
+      buildTransports();
+      chainIdEl.textContent = `${TARGET.id} (${TARGET.name})`;
+      showSessionAddress();
+      logTx(`Session key: ${sessionAccount.address}`, 'confirmed');
+      refreshFees();
+      refreshBalance();
+    }
+
+    // Optional: connect a wallet for one-click funding. Switches it to Monad.
+    async function connectWallet() {
+      if (!window.ethereum) {
+        setStatus('No injected wallet found. Send MON to the session address from any wallet, then click refresh.', 'error');
+        return;
+      }
+      try {
+        connectBtn.disabled = true;
+        connecting = true;
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        funderAddress = accounts[0];
+
+        // The funding tx must land on Monad, so put the wallet on that chain.
+        await ensureChain(TARGET);
+        const chainId = parseInt(await window.ethereum.request({ method: 'eth_chainId' }), 16);
+        if (chainId !== TARGET.id) {
+          throw new Error(`Switch your wallet to ${TARGET.name} (chain ${TARGET.id}).`);
+        }
+
+        buildTransports(); // now also builds the funder wallet client
+
+        connectBtn.textContent = 'Wallet connected';
+        funderRow.style.display = 'flex';
+        funderAddrEl.textContent = shortAddr(funderAddress);
+        fundBtn.disabled = false;
+        logTx(`Connected ${shortAddr(funderAddress)} on ${TARGET.name} (${chainId})`, 'confirmed');
+
+        await refreshBalance();
+        uploader._updateUI();
+      } catch (err) {
+        console.error('Connect failed:', err);
+        setStatus('Wallet connect failed: ' + (err.shortMessage || err.message) + ' — or just send MON to the session address and click refresh.', 'error');
+        connectBtn.disabled = false;
+      } finally {
+        connecting = false;
+      }
+    }
+
+    async function fundSession() {
+      if (!funderWalletClient) {
+        setStatus('Connect a wallet for one-click funding, or send MON to the session address from any wallet and click refresh.', 'error');
+        return;
+      }
+      let value;
+      try {
+        value = parseEther(fundAmount.value.trim());
+        if (value <= 0n) throw new Error('Amount must be > 0');
+      } catch {
+        setStatus('Enter a valid funding amount.', 'error');
+        return;
+      }
+
+      // Leave headroom for the funding tx's own gas (~30k * maxFee).
+      const gasBuffer = 30000n * (CONFIG.maxFeePerGas || parseGwei('2'));
+      if (value + gasBuffer > funderBalance) {
+        setStatus(`Not enough in your wallet: balance is ${formatEther(funderBalance)} ${nativeSymbol}. Try a smaller amount (use "max") or top up the wallet.`, 'error');
+        return;
+      }
+
+      try {
+        fundBtn.disabled = true;
+        fundHint.textContent = 'Confirm the funding transaction in your wallet…';
+        const hash = await funderWalletClient.sendTransaction({
+          to: sessionAccount.address,
+          value
+        });
+        logTx(`Funding TX: ${hash.slice(0, 18)}…`, 'pending');
+        fundHint.textContent = 'Waiting for funding confirmation…';
+        await publicClient.waitForTransactionReceipt({ hash });
+        logTx('Funding confirmed', 'confirmed');
+        fundHint.textContent = 'Funded. The session key now pays its own gas.';
+        await refreshBalance();
+      } catch (err) {
+        console.error('Funding failed:', err);
+        fundHint.textContent = '';
+        setStatus('Funding failed: ' + (err.shortMessage || err.message), 'error');
+      } finally {
+        fundBtn.disabled = false;
+      }
+    }
+
+    function resetSessionKey() {
+      if (uploader.state === UploadState.UPLOADING) return;
+      localStorage.removeItem(CONFIG.sessionKeyStorage);
+      loadOrCreateSessionKey();
+      buildTransports();
+      showSessionAddress();
+      logTx(`New session key: ${sessionAccount.address}`, 'confirmed');
+      refreshBalance();
+    }
+
+    function setMaxFund() {
+      const gasBuffer = 30000n * (CONFIG.maxFeePerGas || parseGwei('2'));
+      const max = funderBalance > gasBuffer ? funderBalance - gasBuffer : 0n;
+      fundAmount.value = formatEther(max);
+    }
+
+    function isReadyToUpload() {
+      return !!sessionWalletClient && sessionBalance > 0n;
+    }
+
+    // ============================================
+    // Upload State Machine
+    // ============================================
+    const UploadState = {
+      IDLE: 'IDLE',
+      SELECTED: 'SELECTED',
+      UPLOADING: 'UPLOADING',
+      FINALIZING: 'FINALIZING',
+      COMPLETE: 'COMPLETE',
+      CANCELLED: 'CANCELLED',
+      ERROR: 'ERROR'
+    };
+
+    class UploadStateMachine {
+      constructor(config) {
+        this.config = config;
+        this.state = UploadState.IDLE;
+        this.file = null;
+        this.previewUrl = null;
+
+        this.transport = null;
+        this.packetCount = 0;
+        this.uploadedBytes = 0;
+        this.startBlock = null;
+        this.lastError = null;
+        this.statsInterval = null;
+      }
+
+      _transitionTo(newState) {
+        const oldState = this.state;
+        this.state = newState;
+        logTx(`Upload: ${oldState} → ${newState}`, 'pending');
+        this._updateUI();
+      }
+
+      _updateUI() {
+        const idle = this.state === UploadState.SELECTED ||
+          this.state === UploadState.COMPLETE || this.state === UploadState.ERROR ||
+          this.state === UploadState.CANCELLED || this.state === UploadState.IDLE;
+
+        uploadBtn.disabled = !(idle && !!this.file && isReadyToUpload());
+        cancelBtn.disabled = this.state !== UploadState.UPLOADING;
+        fileInput.disabled = this.state === UploadState.UPLOADING || this.state === UploadState.FINALIZING;
+        // Fund button only when a wallet is connected and we're not uploading.
+        fundBtn.disabled = !funderWalletClient || this.state === UploadState.UPLOADING;
+
+        if (this.state === UploadState.COMPLETE) return; // keep success message
+
+        let message, type = '';
+        if (this.state === UploadState.UPLOADING) {
+          message = 'Uploading video to blockchain…';
+        } else if (this.state === UploadState.FINALIZING) {
+          message = 'All chunks sent — waiting for confirmations…';
+        } else if (this.state === UploadState.CANCELLED) {
+          message = 'Upload cancelled. In-flight transactions may still confirm.'; type = 'error';
+        } else if (this.state === UploadState.ERROR) {
+          message = `Error: ${this.lastError?.message || 'Unknown error'}`; type = 'error';
+        } else if (sessionBalance <= 0n) {
+          message = 'Fund the session key (Connect wallet, or send MON to its address) to begin.';
+        } else if (!this.file) {
+          message = 'Choose a video file to upload.'; type = 'connected';
+        } else {
+          message = 'Ready to upload. Click "Upload to Blockchain".'; type = 'connected';
+        }
+        setStatus(message, type);
+      }
+
+      _updateStats() {
+        packetCountEl.textContent = this.packetCount;
+        txPendingEl.textContent = this.transport ? this.transport.getPendingCount() : 0;
+        txConfirmedEl.textContent = this.transport ? this.transport.getConfirmedCount() : 0;
+        txRetriesEl.textContent = this.transport ? this.transport.getRetryCount() : 0;
+        uploadedBytesEl.textContent = formatBytes(this.uploadedBytes);
+
+        if (this.transport) {
+          const gas = Number(this.transport.getTotalGasSpent()) / 1e18;
+          gasSpentEl.textContent = gas.toFixed(4) + ' ' + nativeSymbol;
+        } else {
+          gasSpentEl.textContent = '0 ' + nativeSymbol;
+        }
+      }
+
+      _updateProgress() {
+        if (!this.file || this.file.size === 0) return;
+        const pct = Math.min(100, (this.uploadedBytes / this.file.size) * 100);
+        progressFill.style.width = pct + '%';
+      }
+
+      selectFile(file) {
+        if (this.state === UploadState.UPLOADING || this.state === UploadState.FINALIZING) return;
+        if (!file) return;
+
+        this.file = file;
+        this.uploadedBytes = 0;
+        this.packetCount = 0;
+        progressFill.style.width = '0%';
+        streamcodeBox.style.display = 'none';
+
+        if (this.previewUrl) URL.revokeObjectURL(this.previewUrl);
+        this.previewUrl = URL.createObjectURL(file);
+        preview.src = this.previewUrl;
+        preview.style.display = 'block';
+
+        const chunks = Math.ceil(file.size / this.config.chunkSize);
+        fileNameEl.textContent = file.name;
+        fileSizeEl.textContent = formatBytes(file.size);
+        fileTypeEl.textContent = file.type || 'unknown';
+        chunkEstimateEl.textContent = `${chunks} (+1 metadata tx)`;
+        fileMeta.style.display = 'flex';
+        updateCostEstimate();
+
+        this._updateStats();
+        this._transitionTo(UploadState.SELECTED);
+      }
+
+      _onFirstConfirmation(blockNumber) {
+        this.startBlock = Number(blockNumber);
+        const code = StreamCode.create(this.transport.getSenderAddress(), this.startBlock);
+        showStreamCode(code);
+        logTx(`Stream code created: ${code}`, 'confirmed');
+      }
+
+      _onEndConfirmation(blockNumber) {
+        const endBlock = Number(blockNumber);
+        const code = StreamCode.createWithEnd(this.transport.getSenderAddress(), this.startBlock, endBlock);
+        showStreamCode(code);
+        logTx(`Stream code finalized: ${code}`, 'confirmed');
+
+        this._transitionTo(UploadState.COMPLETE);
+        setStatus('Upload complete! Share the stream code below to let anyone replay this video from the chain.', 'connected');
+      }
+
+      async start() {
+        if (this.state === UploadState.UPLOADING || this.state === UploadState.FINALIZING) return;
+        if (!this.file) {
+          this.lastError = new Error('No file selected.');
+          this._transitionTo(UploadState.ERROR);
+          return;
+        }
+        if (!isReadyToUpload()) {
+          setStatus('Connect a wallet and fund the session key first.', 'error');
+          return;
+        }
+
+        this._transitionTo(UploadState.UPLOADING);
+
+        try {
+          this.packetCount = 0;
+          this.uploadedBytes = 0;
+          this.startBlock = null;
+          this.lastError = null;
+          progressFill.style.width = '0%';
+          streamcodeBox.style.display = 'none';
+
+          this.transport = new BlockchainTransport(
+            this.config,
+            publicClient,
+            sessionWalletClient,
+            sessionAccount,
+            (blockNumber) => this._onFirstConfirmation(blockNumber),
+            (blockNumber) => this._onEndConfirmation(blockNumber),
+            () => this._updateStats()
+          );
+          await this.transport.initialize();
+
+          this.statsInterval = setInterval(() => this._updateStats(), 500);
+
+          // 1. Metadata packet (marks the start block for the stream code)
+          const metadata = {
+            mimeType: this.file.type || 'application/octet-stream',
+            videoBitsPerSecond: 0,
+            startTime: Date.now(),
+            fileName: this.file.name,
+            fileSize: this.file.size
+          };
+          await this.transport.send(DVFProtocol.createMetadataPacket(metadata), true, false);
+          this.packetCount++;
+          logTx(`META packet: ${this.file.name} (${formatBytes(this.file.size)})`, 'pending');
+
+          // 2. Stream the file in byte-contiguous chunks
+          const total = this.file.size;
+          let position = 0;
+          while (position < total) {
+            if (this.state !== UploadState.UPLOADING) {
+              logTx('Upload aborted before completion', 'error');
+              return;
+            }
+
+            const end = Math.min(position + this.config.chunkSize, total);
+            const buffer = await this.file.slice(position, end).arrayBuffer();
+            const chunk = new Uint8Array(buffer);
+            const isLast = end >= total;
+
+            if (isLast) {
+              // Final chunk rides on the END packet (valid per DVF spec)
+              await this.transport.send(DVFProtocol.createEndPacket(position, chunk), false, true);
+              logTx(`END packet: pos=${position}, ${formatBytes(chunk.length)}`, 'pending');
+            } else {
+              await this.transport.send(DVFProtocol.createStreamPacket(position, chunk), false, false);
+            }
+
+            position = end;
+            this.uploadedBytes = position;
+            this.packetCount++;
+            this._updateProgress();
+            this._updateStats();
+
+            await new Promise(r => setTimeout(r, 0)); // keep UI responsive
+          }
+
+          this._transitionTo(UploadState.FINALIZING);
+
+        } catch (err) {
+          this.lastError = err;
+          console.error('Upload error:', err);
+          logTx(`Upload error: ${err.message}`, 'error');
+          this._cleanup();
+          this._transitionTo(UploadState.ERROR);
+        }
+      }
+
+      cancel() {
+        if (this.state !== UploadState.UPLOADING) return;
+        this._transitionTo(UploadState.CANCELLED);
+      }
+
+      _cleanup() {
+        if (this.statsInterval) {
+          clearInterval(this.statsInterval);
+          this.statsInterval = null;
+        }
+      }
+    }
+
+    // ============================================
+    // Wire up
+    // ============================================
+    const uploader = new UploadStateMachine(CONFIG);
+
+    connectBtn.addEventListener('click', connectWallet);
+    fundBtn.addEventListener('click', fundSession);
+    maxFundLink.addEventListener('click', setMaxFund);
+    resetKeyLink.addEventListener('click', resetSessionKey);
+    refreshLink.addEventListener('click', refreshBalance);
+    copyKeyLink.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(sessionAccount.address);
+        copyKeyLink.textContent = 'copied';
+        setTimeout(() => { copyKeyLink.textContent = 'copy'; }, 1200);
+      } catch {
+        // Fallback: select the address text
+        const r = document.createRange();
+        r.selectNodeContents(sessionAddrEl);
+        const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      }
+    });
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) uploader.selectFile(file);
+    });
+
+    ['dragenter', 'dragover'].forEach(evt =>
+      dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+      })
+    );
+    ['dragleave', 'drop'].forEach(evt =>
+      dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+      })
+    );
+    dropZone.addEventListener('drop', (e) => {
+      const file = e.dataTransfer?.files && e.dataTransfer.files[0];
+      if (file) uploader.selectFile(file);
+    });
+
+    uploadBtn.addEventListener('click', () => uploader.start());
+    cancelBtn.addEventListener('click', () => uploader.cancel());
+
+    streamcodeValue.addEventListener('click', () => {
+      const range = document.createRange();
+      range.selectNodeContents(streamcodeValue);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+
+    // Reads + chunk txs use the direct RPC, so a wallet chain/account change
+    // only affects the optional funding path — just refresh, don't reload.
+    if (window.ethereum) {
+      window.ethereum.on?.('chainChanged', () => {
+        if (connecting) return;
+        refreshBalance();
+      });
+      window.ethereum.on?.('accountsChanged', (accs) => {
+        if (!accs || accs.length === 0) {
+          funderAddress = null;
+          funderWalletClient = null;
+          funderRow.style.display = 'none';
+          fundBtn.disabled = true;
+          connectBtn.disabled = false;
+          connectBtn.textContent = 'Connect wallet';
+          return;
+        }
+        funderAddress = accs[0];
+        funderAddrEl.textContent = shortAddr(funderAddress);
+        buildTransports();
+        refreshBalance();
+      });
+    }
+
+    window.addEventListener('beforeunload', () => {
+      if (uploader.transport) uploader.transport.close();
+    });
+
+    // Display config + set up the session key (no wallet required)
+    document.getElementById('destAddr').textContent = CONFIG.destAddress;
+    initSession();
+    uploader._updateUI();
+  </script>
+</body>
+</html>
