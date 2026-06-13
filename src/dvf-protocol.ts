@@ -22,6 +22,9 @@ export interface StreamMetadata {
   // a Blob, which supports any format the browser can decode.
   fileName?: string;
   fileSize?: number;
+  // True when the payload is a streamable container (WebM or fragmented MP4),
+  // so receivers can play it progressively instead of downloading fully first.
+  streamable?: boolean;
 }
 
 export interface ParsedMetadataPacket {

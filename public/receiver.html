@@ -1016,14 +1016,14 @@
           codecData = packet.metadata;
           const mime = codecData.mimeType || '';
 
-          // Progressive playback (MediaSource) plays WHILE downloading, but only
-          // works for containers that are decodable from in-order byte slices —
-          // i.e. WebM. Plain mp4/mov need the whole file's index up front and
-          // aren't fragmented, so they fall back to "download fully, then play
-          // as a Blob". (We can't tell fragmented from plain mp4 by mime alone,
-          // so mp4 stays on the safe path.) Live broadcasts are always WebM.
+          // Progressive playback (MediaSource) plays WHILE downloading. It works
+          // when the container is decodable from in-order byte slices: WebM, or
+          // a fragmented MP4 the uploader produced and flagged streamable. Plain
+          // mp4/mov (no streamable flag) fall back to "download fully, then play
+          // as a Blob". Live broadcasts are always WebM.
           const canStream = (typeof MediaSource !== 'undefined') &&
-            /webm/i.test(mime) && MediaSource.isTypeSupported(mime);
+            MediaSource.isTypeSupported(mime) &&
+            (codecData.streamable === true || /webm/i.test(mime));
           playbackMode = (codecData.fileName && !canStream) ? 'file' : 'live';
 
           if (codecData.fileName) {

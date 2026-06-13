@@ -444,6 +444,7 @@
     } from 'https://esm.sh/viem';
     import { privateKeyToAccount, generatePrivateKey } from 'https://esm.sh/viem/accounts';
     import { DVFProtocol, StreamCode } from './dist/index.js';
+    import { ensureStreamable } from './streamable.js';
 
     // ============================================
     // Configuration
@@ -1173,8 +1174,9 @@
       }
 
       _updateProgress() {
-        if (!this.file || this.file.size === 0) return;
-        const pct = Math.min(100, (this.uploadedBytes / this.file.size) * 100);
+        const total = (this.uploadBlob && this.uploadBlob.size) || (this.file && this.file.size);
+        if (!total) return;
+        const pct = Math.min(100, (this.uploadedBytes / total) * 100);
         progressFill.style.width = pct + '%';
       }
 
@@ -1183,6 +1185,7 @@
         if (!file) return;
 
         this.file = file;
+        this.uploadBlob = null;
         this.uploadedBytes = 0;
         this.packetCount = 0;
         progressFill.style.width = '0%';
@@ -1244,6 +1247,28 @@
           progressFill.style.width = '0%';
           streamcodeBox.style.display = 'none';
 
+          // 0. Make the file streamable (so the receiver can play while it
+          //    downloads). webm passes through; mp4/mov are remuxed or
+          //    transcoded; anything else falls back to the original file.
+          setStatus('Preparing video…', '');
+          let prepared;
+          try {
+            prepared = await ensureStreamable(this.file, {
+              log: logTx,
+              onProgress: (p) => {
+                progressFill.style.width = p + '%';
+                setStatus(`Converting to a streamable format… ${p.toFixed(0)}%`, '');
+              }
+            });
+          } catch (e) {
+            logTx(`Conversion error (${e.message}); uploading original`, 'error');
+            prepared = { blob: this.file, mimeType: this.file.type || 'application/octet-stream', fileName: this.file.name, streamable: false };
+          }
+          if (this.state !== UploadState.UPLOADING) { logTx('Upload aborted before completion', 'error'); return; }
+          this.uploadBlob = prepared.blob;
+          progressFill.style.width = '0%';
+          logTx(prepared.streamable ? `Streamable as ${prepared.mimeType}` : 'Not streamable — receiver will download-then-play', prepared.streamable ? 'confirmed' : 'retry');
+
           this.transport = new BlockchainTransport(
             this.config,
             publicClient,
@@ -1259,18 +1284,19 @@
 
           // 1. Metadata packet (marks the start block for the stream code)
           const metadata = {
-            mimeType: this.file.type || 'application/octet-stream',
+            mimeType: prepared.mimeType,
             videoBitsPerSecond: 0,
             startTime: Date.now(),
-            fileName: this.file.name,
-            fileSize: this.file.size
+            fileName: prepared.fileName,
+            fileSize: this.uploadBlob.size,
+            streamable: prepared.streamable
           };
           await this.transport.send(DVFProtocol.createMetadataPacket(metadata), true, false);
           this.packetCount++;
-          logTx(`META packet: ${this.file.name} (${formatBytes(this.file.size)})`, 'pending');
+          logTx(`META packet: ${prepared.fileName} (${formatBytes(this.uploadBlob.size)})`, 'pending');
 
           // 2. Stream the file in byte-contiguous chunks
-          const total = this.file.size;
+          const total = this.uploadBlob.size;
           let position = 0;
           while (position < total) {
             if (this.state !== UploadState.UPLOADING) {
@@ -1279,7 +1305,7 @@
             }
 
             const end = Math.min(position + this.config.chunkSize, total);
-            const buffer = await this.file.slice(position, end).arrayBuffer();
+            const buffer = await this.uploadBlob.slice(position, end).arrayBuffer();
             const chunk = new Uint8Array(buffer);
             const isLast = end >= total;
 
