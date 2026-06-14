@@ -1,5 +1,7 @@
 # Video over blockchain
 
+> **Credit.** This is the work of **[DanielVF](https://github.com/DanielVF/streaming-video)**. The DVF format, the original broadcaster/receiver, and the core idea are all his. This repo is a fork that adds a file uploader, a session-key wallet flow, in-browser format conversion, and a restyled UI on top of his project. Original: https://github.com/DanielVF/streaming-video
+
 Yes, you can stream live video over a blockchain.
 
 Demo:
