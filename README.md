@@ -1,6 +1,9 @@
 # Video over blockchain
 
-> **Credit.** This is the work of **[DanielVF](https://github.com/DanielVF/streaming-video)**. The DVF format, the original broadcaster/receiver, and the core idea are all his. This repo is a fork that adds a file uploader, a session-key wallet flow, in-browser format conversion, and a restyled UI on top of his project. Original: https://github.com/DanielVF/streaming-video
+> **Built on top of [DanielVF's streaming-video](https://github.com/DanielVF/streaming-video).** This project stands on DVF's work and extends it.
+>
+> - **DanielVF** created the foundation: the core idea of streaming video (and files) over a chain, the DVF (Discretized Video Format) protocol, and the original broadcaster and receiver.
+> - **This project** builds on that, adding: a file uploader, a one-prompt session-key wallet flow, Monad mainnet support, in-browser format conversion (mp4/mov remux & transcode, progressive WebM), a round of performance work, and a full UI redesign with a landing page and a How-it-works explainer.
 
 Yes, you can stream live video over a blockchain.
 
@@ -18,7 +21,8 @@ Works both for streaming video and filesharing.
 
 - `public/broadcaster.html` — live camera broadcast over the chain.
 - `public/uploader.html` — upload a video **file** and store it on-chain, then share a stream code to replay it.
-- `public/receiver.html` — paste a stream code to watch. Live broadcasts play progressively via MediaSource; uploaded files (any format) download fully then play as a Blob (selected automatically when the metadata carries a `fileName`).
+- `public/receiver.html` — paste a stream code to watch. Live broadcasts and any upload that converts to a streamable container (WebM, or an mp4/mov remuxed to fragmented MP4) play progressively via MediaSource; anything that can't be made streamable falls back to downloading fully then playing as a Blob (chosen automatically from the metadata).
+- `public/how-it-works.html` — plain-language explainer of the format, the session-key signing flow, and playback.
 
 ### Uploading a file
 
