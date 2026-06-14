@@ -10,6 +10,14 @@
   <link rel="stylesheet" href="./public/monad.css">
 </head>
 <body>
+  <header class="appbar">
+    <a class="brand" href="./index.html"><span class="mark"></span> Monad <span class="brand-sub">/ Video</span></a>
+    <nav class="appnav">
+      <a href="./public/uploader.html">Upload</a>
+      <a href="./public/broadcaster.html">Broadcast</a>
+      <a href="./public/receiver.html">Watch</a>
+    </nav>
+  </header>
   <div class="eyebrow">DVF PROTOCOL · MONAD</div>
   <h1>Video over Blockchain <span>Monad</span></h1>
   <p class="subtitle">Store and replay video on the Monad chain. No server — everything runs in your browser.</p>
@@ -30,5 +38,9 @@
   </div>
 
   <p class="note">Mainnet uses real MON; storing video as calldata is costly. Override the network with <code>localStorage.MONAD_CHAIN_ID</code> / <code>ETH_RPC_URL</code>.</p>
+  <footer class="appfoot">
+    <span>DVF · Video over Monad · no server, all in-browser</span>
+    <a href="https://github.com/1swaraj/streaming-pod" target="_blank" rel="noopener">Source ↗</a>
+  </footer>
 </body>
 </html>

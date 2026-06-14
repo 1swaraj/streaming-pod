@@ -10,6 +10,14 @@
   <link rel="stylesheet" href="./monad.css">
 </head>
 <body>
+  <header class="appbar">
+    <a class="brand" href="../index.html"><span class="mark"></span> Monad <span class="brand-sub">/ Video</span></a>
+    <nav class="appnav">
+      <a href="./uploader.html" aria-current="page">Upload</a>
+      <a href="./broadcaster.html">Broadcast</a>
+      <a href="./receiver.html">Watch</a>
+    </nav>
+  </header>
   <div class="eyebrow">UPLOAD · DVF PROTOCOL</div>
   <h1>Video Uploader <span>Blockchain</span></h1>
   <p class="subtitle">Upload a video file and store it on-chain — replayable by anyone with the stream code.</p>
@@ -1136,5 +1144,9 @@
     initSession();
     uploader._updateUI();
   </script>
+  <footer class="appfoot">
+    <span>DVF · Video over Monad · no server, all in-browser</span>
+    <a href="https://github.com/1swaraj/streaming-pod" target="_blank" rel="noopener">Source ↗</a>
+  </footer>
 </body>
 </html>

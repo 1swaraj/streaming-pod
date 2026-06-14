@@ -10,6 +10,14 @@
   <link rel="stylesheet" href="./monad.css">
 </head>
 <body>
+  <header class="appbar">
+    <a class="brand" href="../index.html"><span class="mark"></span> Monad <span class="brand-sub">/ Video</span></a>
+    <nav class="appnav">
+      <a href="./uploader.html">Upload</a>
+      <a href="./broadcaster.html" aria-current="page">Broadcast</a>
+      <a href="./receiver.html">Watch</a>
+    </nav>
+  </header>
   <div class="eyebrow">LIVE BROADCAST · DVF PROTOCOL</div>
   <h1>Video Broadcaster <span>Blockchain</span></h1>
   <p class="subtitle">Broadcast your camera live over Monad transactions.</p>
@@ -587,5 +595,9 @@
     initSession();
     videoMachine._updateUI();
   </script>
+  <footer class="appfoot">
+    <span>DVF · Video over Monad · no server, all in-browser</span>
+    <a href="https://github.com/1swaraj/streaming-pod" target="_blank" rel="noopener">Source ↗</a>
+  </footer>
 </body>
 </html>
