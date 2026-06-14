@@ -3,7 +3,7 @@
  * broadcaster pages. DOM-free — pages wire their own UI through callbacks.
  *
  * Model: a one-off "session key" is generated in the browser and persisted in
- * localStorage. It signs and broadcasts every DVF packet straight to the Monad
+ * localStorage. It signs and broadcasts every DVF packet straight to the chain
  * RPC via eth_sendRawTransaction — no per-packet wallet popups, and no
  * dependency on the wallet's chain support. A connected wallet is optional and
  * used only for one-click funding of the session key.
@@ -19,12 +19,12 @@ export { parseEther, formatEther, formatGwei, parseGwei };
 // Address every DVF packet is sent to (receivers scan sender -> this address).
 export const DEST_ADDRESS = '0x6476660100000000000000000000000000000000';
 
-// Resolve the target network. Defaults to Monad MAINNET (143). Override with
-// localStorage.MONAD_CHAIN_ID (e.g. 10143 for testnet) and ETH_RPC_URL.
+// Resolve the target network. Defaults to mainnet (143). Override with
+// localStorage.CHAIN_ID (e.g. 10143 for testnet) and ETH_RPC_URL.
 export function resolveTarget() {
-  const id = parseInt(localStorage['MONAD_CHAIN_ID'] || '143', 10);
+  const id = parseInt(localStorage['CHAIN_ID'] || '143', 10);
   const rpcOverride = localStorage['ETH_RPC_URL'] || null;
-  const name = id === 143 ? 'Monad' : id === 10143 ? 'Monad Testnet' : `Chain ${id}`;
+  const name = id === 143 ? 'Mainnet' : id === 10143 ? 'Testnet' : `Chain ${id}`;
   const defaultRpc = id === 10143 ? 'https://testnet-rpc.monad.xyz' : 'https://rpc.monad.xyz';
   const explorer = id === 10143 ? 'https://testnet.monadexplorer.com' : 'https://monadexplorer.com';
   return {
@@ -37,7 +37,7 @@ export function resolveTarget() {
   };
 }
 
-// Intrinsic gas INCLUDING the EIP-7623 calldata floor, which Monad enforces.
+// Intrinsic gas INCLUDING the EIP-7623 calldata floor, enforced by the chain.
 // For data-heavy txs the floor (21000 + 10*tokens, tokens = zeroBytes +
 // 4*nonzeroBytes) dominates the legacy cost, so a flat ~20/byte limit gets
 // rejected as "Gas limit too low".
@@ -315,7 +315,7 @@ export class WalletSession {
   }
 
   _buildClients() {
-    // Reads + the session key's chunk txs go straight to the Monad RPC.
+    // Reads + the session key's chunk txs go straight to the chain RPC.
     this.publicClient = createPublicClient({ chain: this.activeChain, transport: http(this.target.rpcUrl) });
     this.sessionWalletClient = createWalletClient({
       account: this.sessionAccount, chain: this.activeChain, transport: http(this.target.rpcUrl)

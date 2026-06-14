@@ -1,5 +1,5 @@
 /* =========================================================================
-   MDS-2026 — Monad Design System · Dark
+   MDS-2026 · Design System · Dark
    Video-over-blockchain product surfaces.
    Technical at its bones · editorial in rhythm · atmospheric in moments ·
    restrained in color · opinionated in details.
@@ -332,16 +332,33 @@ input::placeholder { color:var(--text-tertiary); }
   margin:var(--sp-4) 0 var(--sp-8);
   background:var(--bg-elevated);
 }
-.wallet-panel .row { display:flex; flex-wrap:wrap; align-items:center; gap:var(--sp-3); margin:var(--sp-2) 0; }
-.wallet-panel .kv { font-family:var(--font-mono); font-size:12px; color:var(--text-tertiary); }
-.wallet-panel .kv b { color:var(--text-primary); font-weight:500; }
-.wallet-panel .fund-controls { display:flex; gap:var(--sp-2); align-items:center; flex-wrap:wrap; margin-top:var(--sp-5); }
-.wallet-panel input[type="text"] { width:118px; }
-.wallet-panel .warn {
-  font-family:var(--font-mono); font-size:11px; line-height:1.65;
-  color:var(--warning); background:var(--warning-bg);
-  border:1px solid rgba(251,191,36,0.2); border-left:2px solid var(--warning);
-  padding:var(--sp-3); border-radius:var(--radius-sm); margin-top:var(--sp-4);
+/* Aligned key/value spec-list */
+.wp-grid { margin-bottom:var(--sp-2); }
+.wp-field { display:flex; align-items:baseline; gap:var(--sp-4); padding:var(--sp-3) 0; }
+.wp-field + .wp-field { border-top:1px solid var(--border-default); }
+.wp-k {
+  font-family:var(--font-mono); font-size:10px; font-weight:500;
+  letter-spacing:1.4px; text-transform:uppercase; color:var(--text-tertiary);
+  width:84px; flex:none;
+}
+.wp-v {
+  font-family:var(--font-mono); font-size:13px; color:var(--text-primary);
+  display:flex; align-items:center; gap:var(--sp-3); flex-wrap:wrap; flex:1; min-width:0;
+}
+.wp-v b { font-weight:500; word-break:break-all; }
+.wp-actions { display:flex; gap:var(--sp-3); margin-left:auto; }
+.wp-sep { color:var(--text-tertiary); }
+.wp-fund { display:flex; gap:var(--sp-2); align-items:center; flex-wrap:wrap; margin-top:var(--sp-5); }
+.wp-fund input[type="text"] { width:110px; }
+.wp-hint { font-family:var(--font-ui); font-size:13px; color:var(--text-tertiary); margin:var(--sp-4) 0 0; }
+.wp-caution {
+  font-family:var(--font-mono); font-size:10px; letter-spacing:1px; text-transform:uppercase;
+  color:var(--text-tertiary); margin:var(--sp-3) 0 0;
+  display:flex; align-items:center; gap:var(--sp-2);
+}
+.wp-caution::before {
+  content:""; width:5px; height:5px; border-radius:50%; flex:none;
+  background:var(--warning); box-shadow:0 0 8px var(--warning);
 }
 .reset-link {
   font-family:var(--font-mono); font-size:11px; letter-spacing:.5px; text-transform:uppercase;

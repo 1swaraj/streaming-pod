@@ -11,14 +11,14 @@
 </head>
 <body>
   <header class="appbar">
-    <a class="brand" href="../index.html"><span class="mark"></span> Monad <span class="brand-sub">/ Video</span></a>
+    <a class="brand" href="../index.html"><span class="mark"></span> Onchain <span class="brand-sub">Video</span></a>
     <nav class="appnav">
       <a href="./uploader.html">Upload</a>
       <a href="./broadcaster.html">Broadcast</a>
       <a href="./receiver.html" aria-current="page">Watch</a>
     </nav>
   </header>
-  <div class="eyebrow">PLAYBACK · DVF PROTOCOL</div>
+  <div class="eyebrow">PLAYBACK · DVF</div>
   <h1>Video Receiver <span>Blockchain</span></h1>
   <p class="subtitle">Watch video streams transported via blockchain transactions</p>
 
@@ -108,9 +108,9 @@
     // Configuration
     // ============================================
     const CONFIG = {
-      // Monad MAINNET by default. Override with localStorage.MONAD_CHAIN_ID
+      // Mainnet by default. Override with localStorage.CHAIN_ID
       // (e.g. 10143 for testnet) and localStorage.ETH_RPC_URL (e.g. a local node).
-      chainId: parseInt(localStorage['MONAD_CHAIN_ID'] || '143', 10),
+      chainId: parseInt(localStorage['CHAIN_ID'] || '143', 10),
       destAddress: '0x6476660100000000000000000000000000000000',
       pollInterval: 300,
       autoStopTimeout: 20 * 60 * 1000
@@ -120,7 +120,7 @@
 
     const localChain = defineChain({
       id: CONFIG.chainId,
-      name: CONFIG.chainId === 143 ? 'Monad' : CONFIG.chainId === 10143 ? 'Monad Testnet' : `Chain ${CONFIG.chainId}`,
+      name: CONFIG.chainId === 143 ? 'Mainnet' : CONFIG.chainId === 10143 ? 'Testnet' : `Chain ${CONFIG.chainId}`,
       nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
       rpcUrls: {
         default: { http: [CONFIG.rpcUrl] }
@@ -760,11 +760,11 @@
       player.load();
       bufferFill.style.width = '100%';
 
-      updateStatus('Download complete — ready to play', 'connected');
+      updateStatus('Download complete. Ready to play', 'connected');
       logBlock('File reassembled, ready to play', 'packet');
 
       player.play().catch(() => {
-        updateStatus('Download complete — press play to watch', 'connected');
+        updateStatus('Download complete. Press play to watch', 'connected');
       });
     }
 
@@ -1040,7 +1040,7 @@
     init();
   </script>
   <footer class="appfoot">
-    <span>DVF · Video over Monad · no server, all in-browser</span>
+    <span>DVF · Onchain video · no server, all in-browser</span>
     <a href="https://github.com/1swaraj/streaming-pod" target="_blank" rel="noopener">Source ↗</a>
   </footer>
 </body>

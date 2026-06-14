@@ -11,48 +11,53 @@
 </head>
 <body>
   <header class="appbar">
-    <a class="brand" href="../index.html"><span class="mark"></span> Monad <span class="brand-sub">/ Video</span></a>
+    <a class="brand" href="../index.html"><span class="mark"></span> Onchain <span class="brand-sub">Video</span></a>
     <nav class="appnav">
       <a href="./uploader.html" aria-current="page">Upload</a>
       <a href="./broadcaster.html">Broadcast</a>
       <a href="./receiver.html">Watch</a>
     </nav>
   </header>
-  <div class="eyebrow">UPLOAD · DVF PROTOCOL</div>
+  <div class="eyebrow">UPLOAD · DVF</div>
   <h1>Video Uploader <span>Blockchain</span></h1>
-  <p class="subtitle">Upload a video file and store it on-chain — replayable by anyone with the stream code.</p>
+  <p class="subtitle">Upload a video file and store it on-chain, replayable by anyone with the stream code.</p>
 
   <!-- Wallet / session key -->
   <div class="wallet-panel" id="walletPanel">
-    <div class="row">
-      <span class="kv">Network: <b id="chainId">-</b></span>
-      <span class="kv">Session key (streamer): <b id="sessionAddr">-</b></span>
-      <span class="reset-link" id="copyKeyLink">copy</span>
-      <a class="reset-link" id="explorerLink" href="#" target="_blank" rel="noopener">explorer</a>
-      <span class="reset-link" id="resetKeyLink">new key</span>
-    </div>
-    <div class="row">
-      <span class="kv">Session balance: <b id="sessionBalance">-</b></span>
-      <span class="reset-link" id="refreshLink">refresh</span>
+    <div class="wp-grid">
+      <div class="wp-field">
+        <span class="wp-k">Network</span>
+        <span class="wp-v"><b id="chainId">-</b></span>
+      </div>
+      <div class="wp-field">
+        <span class="wp-k">Session key</span>
+        <span class="wp-v">
+          <b id="sessionAddr">-</b>
+          <span class="wp-actions">
+            <span class="reset-link" id="copyKeyLink">copy</span>
+            <a class="reset-link" id="explorerLink" href="#" target="_blank" rel="noopener">explorer</a>
+            <span class="reset-link" id="resetKeyLink">new key</span>
+          </span>
+        </span>
+      </div>
+      <div class="wp-field">
+        <span class="wp-k">Balance</span>
+        <span class="wp-v"><b id="sessionBalance">-</b><span class="reset-link" id="refreshLink">refresh</span></span>
+      </div>
+      <div class="wp-field" id="funderRow" style="display:none;">
+        <span class="wp-k">Wallet</span>
+        <span class="wp-v"><b id="funderAddr">-</b><span class="wp-sep">·</span><b id="funderBalance">-</b></span>
+      </div>
     </div>
 
-    <div class="warn">
-      ⚠ Mainnet — real MON. The session key is a hot key in this browser's localStorage; only fund what you'll spend. On-chain video is costly — check "Est. max cost" before funding.
-    </div>
-
-    <div class="fund-controls">
+    <div class="wp-fund">
       <button id="connectBtn">Connect wallet</button>
-      <input type="text" id="fundAmount" value="0.02" />
+      <input type="text" id="fundAmount" value="0.02" aria-label="Amount in MON" />
       <span class="reset-link" id="maxFundLink">max</span>
-      <button id="fundBtn" disabled>Fund (1 prompt)</button>
+      <button id="fundBtn" disabled>Fund</button>
     </div>
-    <div class="row">
-      <span class="kv" id="fundHint">Connect a wallet to fund in one prompt — or send MON to the session address from any wallet, then click refresh.</span>
-    </div>
-    <div class="row" id="funderRow" style="display:none;">
-      <span class="kv">Wallet: <b id="funderAddr">-</b></span>
-      <span class="kv">Wallet balance: <b id="funderBalance">-</b></span>
-    </div>
+    <p class="wp-hint" id="fundHint">Connect a wallet, or send MON to the session address and hit refresh.</p>
+    <p class="wp-caution">Hot key in this browser. Mainnet spends real MON.</p>
   </div>
 
   <div class="drop-zone" id="dropZone">
@@ -176,17 +181,17 @@
     };
 
     // Optional RPC override. Reads and the session key's chunk txs go straight
-    // to this RPC (the Monad public RPC is CORS-enabled), so uploading never
+    // to this RPC (the public RPC is CORS-enabled), so uploading never
     // depends on the wallet's chain support. Set ETH_RPC_URL for a custom node.
     const RPC_OVERRIDE = localStorage['ETH_RPC_URL'] || null;
 
-    // Target network. Defaults to Monad MAINNET (chain 143). The wallet is only
+    // Target network. Defaults to mainnet (chain 143). The wallet is only
     // used for the funding transfer; on connect it's switched to this chain.
-    // Override with localStorage.MONAD_CHAIN_ID (e.g. 10143 for testnet) and
+    // Override with localStorage.CHAIN_ID (e.g. 10143 for testnet) and
     // localStorage.ETH_RPC_URL.
     const TARGET = (() => {
-      const id = parseInt(localStorage['MONAD_CHAIN_ID'] || '143', 10);
-      const name = id === 143 ? 'Monad' : id === 10143 ? 'Monad Testnet' : `Chain ${id}`;
+      const id = parseInt(localStorage['CHAIN_ID'] || '143', 10);
+      const name = id === 143 ? 'Mainnet' : id === 10143 ? 'Testnet' : `Chain ${id}`;
       const defaultRpc = id === 10143 ? 'https://testnet-rpc.monad.xyz' : 'https://rpc.monad.xyz';
       const explorer = id === 10143 ? 'https://testnet.monadexplorer.com' : 'https://monadexplorer.com';
       return {
@@ -223,7 +228,7 @@
       FAILED: 'FAILED'
     };
 
-    // Intrinsic gas INCLUDING the EIP-7623 calldata floor, which Monad enforces.
+    // Intrinsic gas INCLUDING the EIP-7623 calldata floor, enforced by the chain.
     // For data-heavy txs the floor (21000 + 10*tokens, tokens = zeroBytes +
     // 4*nonzeroBytes) dominates the legacy cost (21000 + 4/16 per byte), so a
     // flat ~20/byte limit is rejected as "Gas limit too low".
@@ -567,7 +572,7 @@
     }
 
     function buildTransports() {
-      // Reads and the session key's chunk txs go straight to the Monad RPC
+      // Reads and the session key's chunk txs go straight to the chain RPC
       // (CORS-enabled). The session key is a LOCAL account, so viem signs
       // locally and broadcasts via eth_sendRawTransaction — no wallet, no
       // per-chunk popups, and no dependency on the wallet's chain support.
@@ -636,7 +641,7 @@
       costEstimateEl.textContent = `~${formatEther(est)} ${nativeSymbol}`;
     }
 
-    // Make sure the wallet is on the target (Monad) chain, switching or adding
+    // Make sure the wallet is on the target chain, switching or adding
     // the network if needed. Throws if the user rejects.
     async function ensureChain(target) {
       const current = parseInt(await window.ethereum.request({ method: 'eth_chainId' }), 16);
@@ -694,7 +699,7 @@
       refreshBalance();
     }
 
-    // Optional: connect a wallet for one-click funding. Switches it to Monad.
+    // Optional: connect a wallet for one-click funding. Switches it to the target network.
     async function connectWallet() {
       if (!window.ethereum) {
         setStatus('No injected wallet found. Send MON to the session address from any wallet, then click refresh.', 'error');
@@ -706,7 +711,7 @@
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         funderAddress = accounts[0];
 
-        // The funding tx must land on Monad, so put the wallet on that chain.
+        // The funding tx must land on the chain, so put the wallet on that chain.
         await ensureChain(TARGET);
         const chainId = parseInt(await window.ethereum.request({ method: 'eth_chainId' }), 16);
         if (chainId !== TARGET.id) {
@@ -725,7 +730,7 @@
         uploader._updateUI();
       } catch (err) {
         console.error('Connect failed:', err);
-        setStatus('Wallet connect failed: ' + (err.shortMessage || err.message) + ' — or just send MON to the session address and click refresh.', 'error');
+        setStatus('Wallet connect failed: ' + (err.shortMessage || err.message) + ', or just send MON to the session address and click refresh.', 'error');
         connectBtn.disabled = false;
       } finally {
         connecting = false;
@@ -847,7 +852,7 @@
         if (this.state === UploadState.UPLOADING) {
           message = 'Uploading video to blockchain…';
         } else if (this.state === UploadState.FINALIZING) {
-          message = 'All chunks sent — waiting for confirmations…';
+          message = 'All chunks sent. Waiting for confirmations…';
         } else if (this.state === UploadState.CANCELLED) {
           message = 'Upload cancelled. In-flight transactions may still confirm.'; type = 'error';
         } else if (this.state === UploadState.ERROR) {
@@ -971,7 +976,7 @@
           if (this.state !== UploadState.UPLOADING) { logTx('Upload aborted before completion', 'error'); return; }
           this.uploadBlob = prepared.blob;
           progressFill.style.width = '0%';
-          logTx(prepared.streamable ? `Streamable as ${prepared.mimeType}` : 'Not streamable — receiver will download-then-play', prepared.streamable ? 'confirmed' : 'retry');
+          logTx(prepared.streamable ? `Streamable as ${prepared.mimeType}` : 'Not streamable, receiver will download-then-play', prepared.streamable ? 'confirmed' : 'retry');
 
           this.transport = new BlockchainTransport(
             this.config,
@@ -1145,7 +1150,7 @@
     uploader._updateUI();
   </script>
   <footer class="appfoot">
-    <span>DVF · Video over Monad · no server, all in-browser</span>
+    <span>DVF · Onchain video · no server, all in-browser</span>
     <a href="https://github.com/1swaraj/streaming-pod" target="_blank" rel="noopener">Source ↗</a>
   </footer>
 </body>

@@ -11,48 +11,53 @@
 </head>
 <body>
   <header class="appbar">
-    <a class="brand" href="../index.html"><span class="mark"></span> Monad <span class="brand-sub">/ Video</span></a>
+    <a class="brand" href="../index.html"><span class="mark"></span> Onchain <span class="brand-sub">Video</span></a>
     <nav class="appnav">
       <a href="./uploader.html">Upload</a>
       <a href="./broadcaster.html" aria-current="page">Broadcast</a>
       <a href="./receiver.html">Watch</a>
     </nav>
   </header>
-  <div class="eyebrow">LIVE BROADCAST · DVF PROTOCOL</div>
+  <div class="eyebrow">LIVE BROADCAST · DVF</div>
   <h1>Video Broadcaster <span>Blockchain</span></h1>
-  <p class="subtitle">Broadcast your camera live over Monad transactions.</p>
+  <p class="subtitle">Broadcast your camera live over blockchain transactions.</p>
 
   <!-- Wallet / session key -->
   <div class="wallet-panel" id="walletPanel">
-    <div class="row">
-      <span class="kv">Network: <b id="chainId">-</b></span>
-      <span class="kv">Session key (streamer): <b id="sessionAddr">-</b></span>
-      <span class="reset-link" id="copyKeyLink">copy</span>
-      <a class="reset-link" id="explorerLink" href="#" target="_blank" rel="noopener">explorer</a>
-      <span class="reset-link" id="resetKeyLink">new key</span>
-    </div>
-    <div class="row">
-      <span class="kv">Session balance: <b id="sessionBalance">-</b></span>
-      <span class="reset-link" id="refreshLink">refresh</span>
+    <div class="wp-grid">
+      <div class="wp-field">
+        <span class="wp-k">Network</span>
+        <span class="wp-v"><b id="chainId">-</b></span>
+      </div>
+      <div class="wp-field">
+        <span class="wp-k">Session key</span>
+        <span class="wp-v">
+          <b id="sessionAddr">-</b>
+          <span class="wp-actions">
+            <span class="reset-link" id="copyKeyLink">copy</span>
+            <a class="reset-link" id="explorerLink" href="#" target="_blank" rel="noopener">explorer</a>
+            <span class="reset-link" id="resetKeyLink">new key</span>
+          </span>
+        </span>
+      </div>
+      <div class="wp-field">
+        <span class="wp-k">Balance</span>
+        <span class="wp-v"><b id="sessionBalance">-</b><span class="reset-link" id="refreshLink">refresh</span></span>
+      </div>
+      <div class="wp-field" id="funderRow" style="display:none;">
+        <span class="wp-k">Wallet</span>
+        <span class="wp-v"><b id="funderAddr">-</b><span class="wp-sep">·</span><b id="funderBalance">-</b></span>
+      </div>
     </div>
 
-    <div class="warn">
-      ⚠ Mainnet — real MON. Live video is one transaction per ~0.5s chunk, so broadcasting burns funds fast. The session key is a hot key in this browser's localStorage; only fund what you'll spend.
-    </div>
-
-    <div class="fund-controls">
+    <div class="wp-fund">
       <button id="connectBtn">Connect wallet</button>
-      <input type="text" id="fundAmount" value="0.05" />
+      <input type="text" id="fundAmount" value="0.05" aria-label="Amount in MON" />
       <span class="reset-link" id="maxFundLink">max</span>
-      <button id="fundBtn" disabled>Fund (1 prompt)</button>
+      <button id="fundBtn" disabled>Fund</button>
     </div>
-    <div class="row">
-      <span class="kv" id="fundHint">Connect a wallet to fund in one prompt — or send MON to the session address from any wallet, then click refresh.</span>
-    </div>
-    <div class="row" id="funderRow" style="display:none;">
-      <span class="kv">Wallet: <b id="funderAddr">-</b></span>
-      <span class="kv">Wallet balance: <b id="funderBalance">-</b></span>
-    </div>
+    <p class="wp-hint" id="fundHint">Connect a wallet, or send MON to the session address and hit refresh.</p>
+    <p class="wp-caution">Hot key in this browser. Live broadcast spends MON fast.</p>
   </div>
 
   <div class="streamcode-box" id="streamcodeBox" style="display: none;">
@@ -211,7 +216,7 @@
         await refreshBalance();
       } catch (err) {
         console.error('Connect failed:', err);
-        updateStatus('Wallet connect failed: ' + (err.shortMessage || err.message) + ' — or send MON to the session address and click refresh.', 'error');
+        updateStatus('Wallet connect failed: ' + (err.shortMessage || err.message) + ', or send MON to the session address and click refresh.', 'error');
         connectBtn.disabled = false;
       }
     }
@@ -282,7 +287,7 @@
           const statusConfig = {
             [VideoState.OFF]: { message: session.isReady() ? 'Camera off. Click "Preview Camera".' : 'Fund the session key, then click "Preview Camera".', type: '' },
             [VideoState.ACTIVATING]: { message: 'Activating camera...', type: '' },
-            [VideoState.PREVIEWING]: { message: session.isReady() ? 'Camera preview active. Click "Start Streaming".' : 'Camera on — fund the session key to enable streaming.', type: 'connected' },
+            [VideoState.PREVIEWING]: { message: session.isReady() ? 'Camera preview active. Click "Start Streaming".' : 'Camera on. Fund the session key to enable streaming.', type: 'connected' },
             [VideoState.ERROR]: { message: `Camera error: ${this.lastError?.message || 'Unknown error'}`, type: 'error' }
           };
           const { message, type } = statusConfig[this.state];
@@ -596,7 +601,7 @@
     videoMachine._updateUI();
   </script>
   <footer class="appfoot">
-    <span>DVF · Video over Monad · no server, all in-browser</span>
+    <span>DVF · Onchain video · no server, all in-browser</span>
     <a href="https://github.com/1swaraj/streaming-pod" target="_blank" rel="noopener">Source ↗</a>
   </footer>
 </body>
