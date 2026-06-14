@@ -90,8 +90,13 @@ header(5)  +  position(8, little-endian uint64)  +  chunk bytes</div>
   <div class="prose">
     <p>The code carries everything a reader needs and nothing more.</p>
   </div>
-  <div class="codeblock"><span class="c-key">dvf1</span> <span class="c-dim">+</span> <span class="c-str">0x7984…373a</span> <span class="c-dim">+</span> <span class="c-num">81026517</span> <span class="c-dim">+ x +</span> <span class="c-num">42</span>
-<span class="c-dim">prefix      sender address      start block        duration</span></div>
+  <div class="codebreak">
+    <div class="cb-tok"><span class="cb-v c-key">dvf1</span><span class="cb-l">prefix</span></div>
+    <div class="cb-tok"><span class="cb-v c-str">0x7984…373a</span><span class="cb-l">sender address</span></div>
+    <div class="cb-tok"><span class="cb-v c-num">81026517</span><span class="cb-l">start block</span></div>
+    <span class="cb-sep">x</span>
+    <div class="cb-tok"><span class="cb-v c-num">42</span><span class="cb-l">duration</span></div>
+  </div>
 
   <div class="section-label">Playing it back</div>
   <div class="prose">
@@ -106,6 +111,17 @@ header(5)  +  position(8, little-endian uint64)  +  chunk bytes</div>
   <div class="controls">
     <a class="watch" href="./uploader.html">Upload a clip</a>
   </div>
+
+  <div class="section-label">Credit</div>
+  <a class="credit" href="https://github.com/DanielVF/streaming-video" target="_blank" rel="noopener">
+    <img class="credit-av" src="https://github.com/DanielVF.png" alt="DanielVF" loading="lazy" />
+    <span class="credit-txt">
+      <span class="credit-k">Original work by</span>
+      <span class="credit-name">Daniel<span>VF</span></span>
+      <span class="credit-sub">Everything described on this page, the DVF format and the broadcaster and receiver, is his work. This is a fork.</span>
+    </span>
+    <span class="credit-arrow">↗</span>
+  </a>
 
   <footer class="appfoot">
     <span>DVF · Onchain video</span>

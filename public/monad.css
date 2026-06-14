@@ -202,6 +202,20 @@ code.inline {
 .codeblock .c-num { color:#EAB308; }
 .codeblock .c-str { color:#34D399; }
 .codeblock .c-dim { color:var(--code-dim); }
+/* Token breakdown (value over label, column-aligned) */
+.codebreak {
+  display:flex; flex-wrap:wrap; align-items:flex-start; gap:var(--sp-4) var(--sp-5);
+  background:var(--code-bg); border:1px solid var(--code-border); border-radius:var(--radius-sm);
+  padding:var(--sp-6) var(--sp-5); margin:var(--sp-5) 0 var(--sp-12);
+  font-family:var(--font-mono);
+}
+.cb-tok { display:flex; flex-direction:column; gap:9px; }
+.cb-v { font-size:14px; line-height:1; }
+.cb-l { font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--code-dim); line-height:1; }
+.cb-sep { color:var(--code-dim); font-size:14px; line-height:1; }
+.cb-v.c-key { color:var(--purple-300); }
+.cb-v.c-num { color:#EAB308; }
+.cb-v.c-str { color:#34D399; }
 .spec { border:1px solid var(--border-default); border-radius:var(--radius-sm); overflow:hidden; margin:var(--sp-5) 0 var(--sp-12); }
 .spec-row { display:grid; grid-template-columns:150px 1fr; gap:var(--sp-4); padding:var(--sp-4); }
 .spec-row + .spec-row { border-top:1px solid var(--border-default); }
@@ -528,6 +542,25 @@ a.card::after {
 a.card:hover::after { opacity:1; }
 .note { margin-top:var(--sp-10); font-size:13px; color:var(--text-tertiary); font-family:var(--font-mono); line-height:1.8; }
 .note code { color:var(--text-secondary); }
+
+/* ---- Credit card -------------------------------------------------------- */
+.credit {
+  display:flex; align-items:center; gap:var(--sp-4);
+  padding:var(--sp-5); margin:var(--sp-10) 0 0;
+  border:1px solid var(--border-default);
+  border-left:2px solid var(--accent-primary);
+  border-radius:var(--radius-sm);
+  background:linear-gradient(180deg, rgba(110,84,255,0.05), transparent 80px), var(--bg-elevated);
+  text-decoration:none; transition:border-color .15s, background .15s;
+}
+.credit:hover { border-color:var(--accent-hover); background:var(--bg-raised); }
+.credit-av { width:48px; height:48px; border-radius:var(--radius-full); flex:none; border:1px solid var(--border-default); background:var(--bg-subtle); }
+.credit-txt { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.credit-k { font-family:var(--font-mono); font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-tertiary); }
+.credit-name { font-size:17px; font-weight:600; color:var(--text-primary); }
+.credit-name span { color:var(--accent-hover); }
+.credit-sub { font-size:13px; color:var(--text-secondary); line-height:1.5; }
+.credit-arrow { margin-left:auto; align-self:flex-start; color:var(--accent-hover); font-family:var(--font-mono); font-size:14px; }
 
 /* ---- Footer ------------------------------------------------------------- */
 .appfoot {
