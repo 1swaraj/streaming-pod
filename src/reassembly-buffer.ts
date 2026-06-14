@@ -28,6 +28,9 @@ export class ReassemblyBuffer {
   private _totalLength: number | null = null;
   private _endReceived: boolean = false;
   private _outOfOrderCount: number = 0;
+  // Total distinct bytes ever admitted (delivered + currently buffered).
+  // Tracked incrementally so it survives eviction and getStats stays O(1).
+  private _receivedBytes: number = 0;
 
   get reassembledPosition(): number {
     return this._reassembledPosition;
@@ -46,17 +49,24 @@ export class ReassemblyBuffer {
   }
 
   addChunk(position: number, data: Uint8Array | ArrayBuffer, isEnd: boolean = false): void {
-    if (position > this._reassembledPosition && !this.chunks.has(position)) {
-      if (position !== this._reassembledPosition) {
-        this._outOfOrderCount++;
-      }
+    const bytes = new Uint8Array(data);
+
+    // The contiguous region behind the cursor has already been delivered and
+    // its payloads evicted to free memory (see getContiguousData). A re-seen
+    // packet from that region is inert — drop it so it can't re-grow the Map.
+    if (position < this._reassembledPosition) return;
+
+    const isNew = !this.chunks.has(position);
+    if (isNew) {
+      if (position > this._reassembledPosition) this._outOfOrderCount++;
+      this._receivedBytes += bytes.byteLength;
     }
 
-    this.chunks.set(position, { data: new Uint8Array(data), isEnd });
+    this.chunks.set(position, { data: bytes, isEnd });
 
     if (isEnd) {
       this._endReceived = true;
-      this._totalLength = position + new Uint8Array(data).byteLength;
+      this._totalLength = position + bytes.byteLength;
     }
   }
 
@@ -73,7 +83,13 @@ export class ReassemblyBuffer {
         this.chunks.delete(currentPos);
         break;
       }
+      const consumedPos = currentPos;
       currentPos = currentPos + chunkLen;
+      // Evict the delivered payload: it's already copied into `result` (and
+      // handed to the caller below), and the cursor only moves forward, so it
+      // can never be needed again. Without this the Map retains the entire
+      // stream and large/long streams OOM the tab.
+      this.chunks.delete(consumedPos);
     }
 
     if (result.length > 0) {
@@ -97,14 +113,10 @@ export class ReassemblyBuffer {
   }
 
   getStats(): BufferStats {
-    let receivedBytes = 0;
-    for (const [_pos, chunk] of this.chunks) {
-      receivedBytes += chunk.data.byteLength;
-    }
     return {
       reassembledPosition: this._reassembledPosition,
       totalLength: this._totalLength,
-      receivedBytes,
+      receivedBytes: this._receivedBytes,
       chunkCount: this.chunks.size,
       outOfOrderCount: this._outOfOrderCount,
       isComplete: this.isComplete(),
@@ -113,6 +125,12 @@ export class ReassemblyBuffer {
 
   getChunkRanges(): ChunkRange[] {
     const ranges: ChunkRange[] = [];
+    // Delivered, contiguous region. Its individual chunks have been evicted to
+    // free memory, so represent it as one solid range up to the cursor.
+    if (this._reassembledPosition > 0) {
+      ranges.push({ start: 0, end: this._reassembledPosition });
+    }
+    // Out-of-order chunks still buffered ahead of the cursor.
     for (const [pos, chunk] of this.chunks) {
       ranges.push({ start: pos, end: pos + chunk.data.byteLength });
     }
@@ -125,5 +143,6 @@ export class ReassemblyBuffer {
     this._totalLength = null;
     this._endReceived = false;
     this._outOfOrderCount = 0;
+    this._receivedBytes = 0;
   }
 }

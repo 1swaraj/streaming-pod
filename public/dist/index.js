@@ -201,6 +201,7 @@ class ReassemblyBuffer {
   _totalLength = null;
   _endReceived = false;
   _outOfOrderCount = 0;
+  _receivedBytes = 0;
   get reassembledPosition() {
     return this._reassembledPosition;
   }
@@ -214,15 +215,19 @@ class ReassemblyBuffer {
     return this._outOfOrderCount;
   }
   addChunk(position, data, isEnd = false) {
-    if (position > this._reassembledPosition && !this.chunks.has(position)) {
-      if (position !== this._reassembledPosition) {
+    const bytes = new Uint8Array(data);
+    if (position < this._reassembledPosition)
+      return;
+    const isNew = !this.chunks.has(position);
+    if (isNew) {
+      if (position > this._reassembledPosition)
         this._outOfOrderCount++;
-      }
+      this._receivedBytes += bytes.byteLength;
     }
-    this.chunks.set(position, { data: new Uint8Array(data), isEnd });
+    this.chunks.set(position, { data: bytes, isEnd });
     if (isEnd) {
       this._endReceived = true;
-      this._totalLength = position + new Uint8Array(data).byteLength;
+      this._totalLength = position + bytes.byteLength;
     }
   }
   getContiguousData() {
@@ -236,7 +241,9 @@ class ReassemblyBuffer {
         this.chunks.delete(currentPos);
         break;
       }
+      const consumedPos = currentPos;
       currentPos = currentPos + chunkLen;
+      this.chunks.delete(consumedPos);
     }
     if (result.length > 0) {
       this._reassembledPosition = currentPos;
@@ -255,14 +262,10 @@ class ReassemblyBuffer {
     return this._endReceived && this._reassembledPosition === this._totalLength;
   }
   getStats() {
-    let receivedBytes = 0;
-    for (const [_pos, chunk] of this.chunks) {
-      receivedBytes += chunk.data.byteLength;
-    }
     return {
       reassembledPosition: this._reassembledPosition,
       totalLength: this._totalLength,
-      receivedBytes,
+      receivedBytes: this._receivedBytes,
       chunkCount: this.chunks.size,
       outOfOrderCount: this._outOfOrderCount,
       isComplete: this.isComplete()
@@ -270,6 +273,9 @@ class ReassemblyBuffer {
   }
   getChunkRanges() {
     const ranges = [];
+    if (this._reassembledPosition > 0) {
+      ranges.push({ start: 0, end: this._reassembledPosition });
+    }
     for (const [pos, chunk] of this.chunks) {
       ranges.push({ start: pos, end: pos + chunk.data.byteLength });
     }
@@ -281,6 +287,7 @@ class ReassemblyBuffer {
     this._totalLength = null;
     this._endReceived = false;
     this._outOfOrderCount = 0;
+    this._receivedBytes = 0;
   }
 }
 export {
