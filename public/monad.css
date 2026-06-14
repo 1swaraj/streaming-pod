@@ -545,15 +545,29 @@ a.card:hover::after { opacity:1; }
 
 /* ---- Credit card -------------------------------------------------------- */
 .credit {
+  position:relative;
   display:flex; align-items:center; gap:var(--sp-4);
   padding:var(--sp-5); margin:var(--sp-10) 0 0;
   border:1px solid var(--border-default);
-  border-left:2px solid var(--accent-primary);
   border-radius:var(--radius-sm);
-  background:linear-gradient(180deg, rgba(110,84,255,0.05), transparent 80px), var(--bg-elevated);
-  text-decoration:none; transition:border-color .15s, background .15s;
+  background:var(--bg-elevated);
+  text-decoration:none; transition:border-color .15s, background .15s, transform .12s;
 }
-.credit:hover { border-color:var(--accent-hover); background:var(--bg-raised); }
+.credit:hover { border-color:var(--border-strong); background:var(--bg-raised); transform:translateY(-2px); }
+.credit::after {
+  content:""; position:absolute; inset:8px; pointer-events:none; opacity:0; transition:opacity .15s;
+  --c:var(--accent-hover);
+  background:
+    linear-gradient(var(--c),var(--c)) 0 0/16px 1px no-repeat,
+    linear-gradient(var(--c),var(--c)) 0 0/1px 16px no-repeat,
+    linear-gradient(var(--c),var(--c)) 100% 0/16px 1px no-repeat,
+    linear-gradient(var(--c),var(--c)) 100% 0/1px 16px no-repeat,
+    linear-gradient(var(--c),var(--c)) 0 100%/16px 1px no-repeat,
+    linear-gradient(var(--c),var(--c)) 0 100%/1px 16px no-repeat,
+    linear-gradient(var(--c),var(--c)) 100% 100%/16px 1px no-repeat,
+    linear-gradient(var(--c),var(--c)) 100% 100%/1px 16px no-repeat;
+}
+.credit:hover::after { opacity:1; }
 .credit-av { width:48px; height:48px; border-radius:var(--radius-full); flex:none; border:1px solid var(--border-default); background:var(--bg-subtle); }
 .credit-txt { display:flex; flex-direction:column; gap:3px; min-width:0; }
 .credit-k { font-family:var(--font-mono); font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-tertiary); }
