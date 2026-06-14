@@ -399,7 +399,9 @@
         txRetriesEl.textContent = this.transport ? this.transport.getRetryCount() : 0;
         streamPosEl.textContent = formatBytes(this.streamPosition);
         if (this.transport) {
-          const gas = Number(this.transport.getTotalGasSpent()) / 1e18;
+          // formatEther converts the wei BigInt exactly; Number(bigint)/1e18
+          // lost precision once the wei value exceeded ~2^53.
+          const gas = Number(formatEther(this.transport.getTotalGasSpent()));
           gasSpentEl.textContent = gas.toFixed(4) + ' ' + session.symbol;
         } else {
           gasSpentEl.textContent = '0 ' + session.symbol;

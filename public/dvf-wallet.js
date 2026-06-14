@@ -194,6 +194,7 @@ export class BlockchainTransport {
     this.packets = new Map();
     this.totalRetries = 0;
     this.totalGasSpent = 0n;
+    this._countedNonces = new Set(); // nonces already added to totalGasSpent
     this.firstConfirmed = false;
 
     this.tickInterval = setInterval(() => this._tick(), 1000);
@@ -206,7 +207,13 @@ export class BlockchainTransport {
   }
 
   _handleConfirmed(machine, receipt) {
-    if (receipt) this.totalGasSpent += receipt.gasUsed * receipt.effectiveGasPrice;
+    // Count each nonce's gas at most once (a nonce can confirm via more than one
+    // tx hash after a re-broadcast/replacement); double-counting inflated the
+    // displayed "Gas Spent" far above the wallet's real debit.
+    if (receipt && !this._countedNonces.has(machine.nonce)) {
+      this._countedNonces.add(machine.nonce);
+      this.totalGasSpent += receipt.gasUsed * receipt.effectiveGasPrice;
+    }
     this.totalRetries += machine.retryCount;
     this.onStatsUpdate();
     if (machine.isFirst && !this.firstConfirmed) {
