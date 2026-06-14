@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How it works</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="./monad.css">
+  <link rel="icon" type="image/svg+xml" href="./logo.svg">
+</head>
+<body>
+  <header class="appbar">
+    <a class="brand" href="../index.html"><span class="mark"></span> Onchain <span class="brand-sub">Video</span></a>
+    <nav class="appnav">
+      <a href="./uploader.html">Upload</a>
+      <a href="./broadcaster.html">Broadcast</a>
+      <a href="./receiver.html">Watch</a>
+      <a href="./how-it-works.html" aria-current="page">How</a>
+    </nav>
+  </header>
+
+  <div class="eyebrow">HOW IT WORKS</div>
+  <h1>Video, stored as transactions</h1>
+  <p class="lead">Most video lives on a server or a CDN. Here the clip itself lives on Monad. It is chopped into chunks, each written as the calldata of an ordinary transaction. To play it back, a browser reads those transactions out of the blocks and stitches them together. No storage contract, no backend.</p>
+
+  <div class="section-label">The format</div>
+  <div class="prose">
+    <p>A clip becomes a sequence of <strong>packets</strong>, each carried in one transaction. There are three kinds, and every clip is exactly one metadata packet, then many stream packets, then one end packet.</p>
+  </div>
+
+  <div class="spec">
+    <div class="spec-row"><span class="t">Metadata</span><span class="d">Describes the clip: mime type, file name and size, and whether it can play while it downloads. Its block is where the clip begins.</span></div>
+    <div class="spec-row"><span class="t">Stream</span><span class="d">A chunk of the file plus its position, the byte offset of that chunk in the whole clip. Chunks can land out of order; the position is what puts them back together.</span></div>
+    <div class="spec-row"><span class="t">End</span><span class="d">The final chunk and the total length, so the reader knows the clip is complete.</span></div>
+  </div>
+
+  <div class="prose">
+    <p>Every packet starts with the same five-byte header, so a reader can recognise a packet at a glance and ignore everything else in the block.</p>
+  </div>
+  <div class="codeblock"><span class="c-dim">// 5-byte header on every packet</span>
+┌─────────────────┬──────────────┬──────────────┐
+│ Magic (3 bytes) │ Version (1)  │ Type (1)     │
+│ <span class="c-str">"dvf"</span>           │ <span class="c-num">0x01</span>         │ <span class="c-num">0x00</span>..<span class="c-num">0x02</span>   │
+└─────────────────┴──────────────┴──────────────┘
+
+<span class="c-dim">// a stream packet's calldata</span>
+header(5)  +  position(8, little-endian uint64)  +  chunk bytes</div>
+
+  <div class="section-label">Signing without the popups</div>
+  <div class="prose">
+    <p>A clip can be hundreds of transactions, and nobody wants hundreds of wallet prompts. So you connect your wallet <strong>once</strong> to fund a throwaway <strong>session key</strong> generated in your browser. That key signs and broadcasts every chunk itself, straight to the RPC, with no further prompts.</p>
+    <p>The session key lives in this browser's <code class="inline">localStorage</code>. It is a hot key, so you only fund what a clip will cost. You can also skip the wallet entirely and send funds to the session address from anywhere.</p>
+  </div>
+
+  <div class="section-label">Uploading a clip</div>
+  <div class="steps">
+    <div class="step">
+      <span class="step-num">STEP 01</span>
+      <div>
+        <h3>Prepare</h3>
+        <p>WebM is ready as-is. An mp4 or mov is remuxed, or transcoded, in the browser into a form that can play while it downloads.</p>
+      </div>
+    </div>
+    <div class="step">
+      <span class="step-num">STEP 02</span>
+      <div>
+        <h3>Write</h3>
+        <p>The metadata packet goes out first; the block it lands in marks the start of the clip. Then the file streams out as byte-contiguous chunks, one transaction each, and an end packet closes it.</p>
+      </div>
+    </div>
+    <div class="step">
+      <span class="step-num">STEP 03</span>
+      <div>
+        <h3>Share</h3>
+        <p>You get a short stream code. It is just a pointer: who wrote the clip and which block to start reading from.</p>
+      </div>
+    </div>
+    <div class="step">
+      <span class="step-num">STEP 04</span>
+      <div>
+        <h3>Replay</h3>
+        <p>Anyone with the code reads the clip back out of the chain and watches it. Nothing was uploaded to a server at any point.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">The stream code</div>
+  <div class="prose">
+    <p>The code carries everything a reader needs and nothing more.</p>
+  </div>
+  <div class="codeblock"><span class="c-key">dvf1</span> <span class="c-dim">+</span> <span class="c-str">0x7984…373a</span> <span class="c-dim">+</span> <span class="c-num">81026517</span> <span class="c-dim">+ x +</span> <span class="c-num">42</span>
+<span class="c-dim">prefix      sender address      start block        duration</span></div>
+
+  <div class="section-label">Playing it back</div>
+  <div class="prose">
+    <p>The reader walks the blocks from the start block forward. In each one it keeps only the transactions from the clip's sender, checks the magic bytes, and drops everything else. Chunks are reassembled by their position, so out-of-order arrival is fine.</p>
+    <p>WebM plays <strong>progressively</strong>: the reader feeds chunks to the player as they arrive, so it starts after a second or two instead of waiting for the whole file. Other formats download fully, then play.</p>
+  </div>
+
+  <div class="status waiting">
+    Writing bytes as calldata is not free. Monad charges the EIP-7623 calldata floor, so a clip's cost scales with its size, and on mainnet that is real MON. Keep clips short.
+  </div>
+
+  <div class="controls">
+    <a class="watch" href="./uploader.html">Upload a clip</a>
+  </div>
+
+  <footer class="appfoot">
+    <span>DVF · Onchain video · no server, all in-browser</span>
+    <a href="https://github.com/1swaraj/streaming-pod" target="_blank" rel="noopener">Source ↗</a>
+  </footer>
+</body>
+</html>

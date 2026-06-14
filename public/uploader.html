@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap">
   <link rel="stylesheet" href="./monad.css">
+  <link rel="icon" type="image/svg+xml" href="./logo.svg">
 </head>
 <body>
   <header class="appbar">
@@ -16,6 +17,7 @@
       <a href="./uploader.html" aria-current="page">Upload</a>
       <a href="./broadcaster.html">Broadcast</a>
       <a href="./receiver.html">Watch</a>
+      <a href="./how-it-works.html">How</a>
     </nav>
   </header>
   <div class="eyebrow">UPLOAD · DVF</div>
@@ -24,35 +26,38 @@
 
   <!-- Wallet / session key -->
   <div class="wallet-panel" id="walletPanel">
-    <div class="wp-grid">
-      <div class="wp-field">
-        <span class="wp-k">Network</span>
-        <span class="wp-v"><b id="chainId">-</b></span>
-      </div>
-      <div class="wp-field">
+    <div class="wp-head">
+      <span class="wp-net"><span class="wp-dot"></span><b id="chainId">-</b></span>
+    </div>
+
+    <div class="wp-rows">
+      <div class="wp-row">
         <span class="wp-k">Session key</span>
-        <span class="wp-v">
-          <b id="sessionAddr">-</b>
+        <div class="wp-line">
+          <b id="sessionAddr" class="wp-addr">-</b>
           <span class="wp-actions">
             <span class="reset-link" id="copyKeyLink">copy</span>
             <a class="reset-link" id="explorerLink" href="#" target="_blank" rel="noopener">explorer</a>
             <span class="reset-link" id="resetKeyLink">new key</span>
           </span>
-        </span>
+        </div>
       </div>
-      <div class="wp-field">
+      <div class="wp-row">
         <span class="wp-k">Balance</span>
-        <span class="wp-v"><b id="sessionBalance">-</b><span class="reset-link" id="refreshLink">refresh</span></span>
+        <div class="wp-line">
+          <b id="sessionBalance" class="wp-bal">-</b>
+          <span class="reset-link" id="refreshLink">refresh</span>
+        </div>
       </div>
-      <div class="wp-field" id="funderRow" style="display:none;">
-        <span class="wp-k">Wallet</span>
-        <span class="wp-v"><b id="funderAddr">-</b><span class="wp-sep">·</span><b id="funderBalance">-</b></span>
+      <div class="wp-row" id="funderRow" style="display:none;">
+        <span class="wp-k">Funding wallet</span>
+        <div class="wp-line"><b id="funderAddr">-</b><span class="wp-sep">·</span><b id="funderBalance">-</b></div>
       </div>
     </div>
 
     <div class="wp-fund">
       <button id="connectBtn">Connect wallet</button>
-      <input type="text" id="fundAmount" value="0.02" aria-label="Amount in MON" />
+      <span class="wp-amount"><input type="text" id="fundAmount" value="0.02" aria-label="Amount in MON" /><span class="wp-unit">MON</span></span>
       <span class="reset-link" id="maxFundLink">max</span>
       <button id="fundBtn" disabled>Fund</button>
     </div>
@@ -721,7 +726,7 @@
         buildTransports(); // now also builds the funder wallet client
 
         connectBtn.textContent = 'Wallet connected';
-        funderRow.style.display = 'flex';
+        funderRow.style.display = '';
         funderAddrEl.textContent = shortAddr(funderAddress);
         fundBtn.disabled = false;
         logTx(`Connected ${shortAddr(funderAddress)} on ${TARGET.name} (${chainId})`, 'confirmed');
