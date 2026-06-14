@@ -238,6 +238,7 @@
         this.pollTimer = null;
         this.autoStopTimer = null;
         this.autoStopTimeout = config.autoStopTimeout || 20 * 60 * 1000;
+        this.errorBackoff = 0; // consecutive fetch errors, for exponential backoff
 
         // Create workers
         for (let i = 0; i < this.parallelism; i++) {
@@ -265,15 +266,10 @@
 
         logBlock(`Starting from block ${startBlock}${endBlock ? ` to ${endBlock}` : ' (live)'}`, 'block');
 
-        if (this.endBlock === null) {
-          this.autoStopTimer = setTimeout(() => {
-            logBlock('Auto-stopping after 20 minute timeout', 'error');
-            this.stop();
-            if (this.callbacks.onComplete) {
-              this.callbacks.onComplete('timeout');
-            }
-          }, this.autoStopTimeout);
-        }
+        // Arm the idle auto-stop for live streams. It's reset on every packet
+        // delivery (see _processBlock), so an actively-progressing long stream
+        // never times out — the 20-minute window only fires when truly idle.
+        this._armAutoStop();
 
         // Start in CATCHING_UP mode
         this._transitionTo(DispatcherState.CATCHING_UP);
@@ -296,6 +292,32 @@
         for (const worker of this.workers) {
           worker.reset();
         }
+      }
+
+      // (Re)arm the live-stream idle timeout. Called on start and on every
+      // packet delivery so a stream that keeps producing never auto-stops;
+      // only a genuinely idle (abandoned) stream hits the 20-minute window.
+      _armAutoStop() {
+        if (this.endBlock !== null) return; // completed streams have a hard end
+        if (this.autoStopTimer) clearTimeout(this.autoStopTimer);
+        this.autoStopTimer = setTimeout(() => {
+          logBlock('Auto-stopping after 20 minutes idle', 'error');
+          this.stop();
+          if (this.callbacks.onComplete) {
+            this.callbacks.onComplete('timeout');
+          }
+        }, this.autoStopTimeout);
+      }
+
+      // Schedule the next dispatch, clearing any pending timer first. Without
+      // the clear, two workers returning NOT_FOUND/ERROR in one cycle each set
+      // their own timer, orphaning the first and double-firing _dispatchWork.
+      _scheduleDispatch(delay) {
+        if (this.pollTimer) clearTimeout(this.pollTimer);
+        this.pollTimer = setTimeout(() => {
+          this.pollTimer = null;
+          this._dispatchWork();
+        }, delay);
       }
 
       _dispatchWork() {
@@ -337,14 +359,17 @@
 
         if (worker.state === FetcherState.FOUND) {
           // Store in delivery buffer for ordered delivery
+          this.errorBackoff = 0; // a successful fetch clears the backoff
           this.deliveryBuffer.set(blockNum.toString(), worker.result);
           this._tryDeliver();
 
-          // Check if we should switch from FOLLOWING_TIP to CATCHING_UP
+          // Check if we should switch from FOLLOWING_TIP to CATCHING_UP.
+          // Threshold is parallelism*2 so a brief burst of new blocks doesn't
+          // thrash modes — only a sustained backlog flips back to catch-up.
           if (this.state === DispatcherState.FOLLOWING_TIP) {
             // Calculate gap: how many undelivered blocks are there?
             const gap = this.nextBlockToAssign - this.nextBlockToDeliver;
-            if (gap > BigInt(this.parallelism)) {
+            if (gap > BigInt(this.parallelism * 2)) {
               this._transitionTo(DispatcherState.CATCHING_UP);
             }
           }
@@ -375,10 +400,10 @@
 
           worker.reset();
 
-          // In FOLLOWING_TIP mode, schedule retry after poll interval
-          this.pollTimer = setTimeout(() => {
-            this._dispatchWork();
-          }, this.pollInterval);
+          // Hitting the tip means the RPC is healthy — clear error backoff and
+          // probe again after the normal poll interval.
+          this.errorBackoff = 0;
+          this._scheduleDispatch(this.pollInterval);
 
         } else if (worker.state === FetcherState.ERROR) {
           logBlock(`Fetch error for block ${blockNum}: ${worker.error?.message}`, 'error');
@@ -387,10 +412,11 @@
           this.fetchedBlocks.delete(blockNum.toString());
           worker.reset();
 
-          // Schedule retry
-          this.pollTimer = setTimeout(() => {
-            this._dispatchWork();
-          }, this.pollInterval);
+          // Exponential backoff so a sustained RPC outage doesn't hammer the
+          // node every pollInterval: 300ms, 600ms, 1.2s, ... capped at 5s.
+          this.errorBackoff++;
+          const delay = Math.min(this.pollInterval * (2 ** this.errorBackoff), 5000);
+          this._scheduleDispatch(delay);
         }
       }
 
@@ -440,6 +466,7 @@
         }
 
         if (packetsFound > 0) {
+          this._armAutoStop(); // reset the idle timer — this stream is alive
           logBlock(`Block ${blockNum}: ${packetsFound} packet(s) found`, 'packet');
         } else {
           if (this.blocksScanned % 10 === 0) {
@@ -940,7 +967,10 @@
           destAddress: CONFIG.destAddress,
           pollInterval: CONFIG.pollInterval,
           autoStopTimeout: CONFIG.autoStopTimeout,
-          parallelism: 2
+          // 8 concurrent block fetches during catch-up (late-join / seek-back):
+          // ~3x faster historical fetch. Bounded by the browser's ~6-conn/host
+          // cap; the tip-following probe still uses a single worker.
+          parallelism: 8
         };
 
         listener = new FetchDispatcher(dispatcherConfig, {
