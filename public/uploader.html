@@ -266,6 +266,7 @@
         this.currentTxHash = null;
         this.priorityFee = config.basePriorityFee;
         this.retryCount = 0;
+        this.broadcastAttempts = 0;
         this.lastSendTime = null;
       }
 
@@ -311,8 +312,19 @@
             this._transitionTo(PacketState.CONFIRMED);
             this.callbacks.onConfirmed(null);
           } else {
-            this._transitionTo(PacketState.FAILED);
-            this.callbacks.onFailed(err);
+            // Initial broadcast failed (transient RPC error / rate limit). Do
+            // NOT abandon the nonce: a never-sent nonce stalls every later nonce
+            // in the mempool and leaves a permanent byte gap that freezes the
+            // receiver's contiguous reassembly forever. Stay in SENDING so the
+            // tick loop re-broadcasts (bounded by maxRetries).
+            this.broadcastAttempts++;
+            if (this.broadcastAttempts >= this.config.maxRetries) {
+              this._transitionTo(PacketState.FAILED);
+              this.callbacks.onFailed(err);
+            } else {
+              this.lastSendTime = Date.now(); // start the retry-timeout clock
+              logTx(`TX nonce=${this.nonce} broadcast failed (attempt ${this.broadcastAttempts}/${this.config.maxRetries}); will retry`, 'retry');
+            }
           }
         }
       }
@@ -342,6 +354,12 @@
       async tick(publicClient, walletClient) {
         switch (this.state) {
           case PacketState.SENDING:
+            // A machine sits in SENDING only when its latest (re)broadcast
+            // failed and no live tx is in the mempool. Re-broadcast once the
+            // timeout elapses so the nonce is never abandoned.
+            if (this._isTimedOut()) {
+              await this._broadcast(walletClient);
+            }
             break;
 
           case PacketState.PENDING:
@@ -403,6 +421,7 @@
       }
 
       async initialize() {
+        if (this.nonceInitialized) return;
         this.currentNonce = await this.publicClient.getTransactionCount({
           address: this.account.address
         });
@@ -1009,8 +1028,25 @@
           this.packetCount++;
           logTx(`META packet: ${prepared.fileName} (${formatBytes(this.uploadBlob.size)})`, 'pending');
 
-          // 2. Stream the file in byte-contiguous chunks
+          // 2. Stream the file in byte-contiguous chunks.
+          //    Broadcasts are pipelined with a bounded in-flight window instead
+          //    of awaited one-at-a-time. send() assigns the nonce synchronously
+          //    (before its first await), so calling it in loop order keeps
+          //    nonces — and therefore on-chain ordering — strictly sequential;
+          //    only the per-chunk eth_sendRawTransaction round-trips overlap.
+          //    The window is capped to avoid tripping RPC rate limits.
           const total = this.uploadBlob.size;
+          const MAX_IN_FLIGHT = 8;
+          const inFlight = new Set();
+          // send() never rejects (PacketStateMachine swallows broadcast errors
+          // and retries via the tick loop), but guard defensively so a stray
+          // rejection can't break Promise.race or leak an unhandled rejection.
+          const trackSend = (promise) => {
+            const p = promise.catch(err => logTx(`Unexpected send error: ${err?.message || err}`, 'error'));
+            inFlight.add(p);
+            p.finally(() => inFlight.delete(p));
+          };
+
           let position = 0;
           while (position < total) {
             if (this.state !== UploadState.UPLOADING) {
@@ -1025,10 +1061,10 @@
 
             if (isLast) {
               // Final chunk rides on the END packet (valid per DVF spec)
-              await this.transport.send(DVFProtocol.createEndPacket(position, chunk), false, true);
+              trackSend(this.transport.send(DVFProtocol.createEndPacket(position, chunk), false, true));
               logTx(`END packet: pos=${position}, ${formatBytes(chunk.length)}`, 'pending');
             } else {
-              await this.transport.send(DVFProtocol.createStreamPacket(position, chunk), false, false);
+              trackSend(this.transport.send(DVFProtocol.createStreamPacket(position, chunk), false, false));
             }
 
             position = end;
@@ -1037,8 +1073,17 @@
             this._updateProgress();
             this._updateStats();
 
-            await new Promise(r => setTimeout(r, 0)); // keep UI responsive
+            // Throttle to the in-flight window: pause queueing until a slot
+            // frees up. This also yields to the event loop, keeping the UI
+            // responsive (replacing the old per-chunk setTimeout(0)).
+            if (inFlight.size >= MAX_IN_FLIGHT) {
+              await Promise.race(inFlight);
+            }
           }
+
+          // Ensure every packet has been broadcast before finalizing, so the
+          // END packet is actually in flight when we wait on its confirmation.
+          await Promise.allSettled(inFlight);
 
           this._transitionTo(UploadState.FINALIZING);
 
