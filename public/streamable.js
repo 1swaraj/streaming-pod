@@ -195,7 +195,16 @@ async function transcodeToWebm(file, onProgress) {
     } catch { /* no audio track — video only */ }
 
     const mixed = new MediaStream(tracks);
-    const rec = new MediaRecorder(mixed, { mimeType: mime, videoBitsPerSecond: 1500000 });
+
+    // Resolution-adaptive bitrate, capped at 1.5Mbps (the old fixed default).
+    // >=720p stays at the cap (no quality/cost regression); sub-720p clips get
+    // proportionally less, cutting on-chain upload size for low-res sources.
+    // ~1.6 bits/pixel lands 720p (1280x720) right at the cap; floor 400kbps.
+    const px = (video.videoWidth || 0) * (video.videoHeight || 0);
+    const videoBitsPerSecond = px > 0
+      ? Math.min(1500000, Math.max(400000, Math.round(px * 1.6)))
+      : 1500000; // unknown dimensions -> keep the safe default
+    const rec = new MediaRecorder(mixed, { mimeType: mime, videoBitsPerSecond });
     const chunks = [];
     rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
     const recStopped = new Promise((res) => { rec.onstop = res; });
